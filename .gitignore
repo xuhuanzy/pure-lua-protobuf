@@ -8,4 +8,7 @@ msgpack
 CMakeLists.txt
 pb.c
 pb.h
+pbc.lua
+pbh.lua
+
 

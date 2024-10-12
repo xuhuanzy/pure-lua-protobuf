@@ -371,7 +371,6 @@ function M.pbL_FileDescriptorProto(L, info)
     ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
     local s = {}
-    print(decode.pb_len(L.s))
     assert(pbL_beginmsg(L, s) == PB_OK)
     while true do
         local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer

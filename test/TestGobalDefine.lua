@@ -146,8 +146,9 @@ local descriptor_pb =
 "protobuf/types/descriptorpb\248\1\1\162\2\3GPB\170\2\26Google.Protobuf." ..
 "Reflection"
 
-
-
+-- local x = string.byte(descriptor_pb, 1, #descriptor_pb)
+-- local byte_values = table.pack(string.byte(descriptor_pb, 1, #descriptor_pb))
+-- print(byte_values)
 return {
     descriptor_pb = descriptor_pb
 }

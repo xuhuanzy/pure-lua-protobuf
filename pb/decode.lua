@@ -44,8 +44,8 @@ function M.pb_lslice(s, len)
     ---@type pb_Slice
     return {
         data = s,
-        pos = 1,
-        start = 1,
+        pos = s and 1 or nil,
+        start = s and 1 or nil,
         end_pos = len + 1
     }
 end
