@@ -1,0 +1,32 @@
+{
+    "files.associations": {
+        "lauxlib.h": "c"
+    },
+    "Lua.workspace.preloadFileSize": 5000,
+    "Lua.runtime.pathStrict": true,
+    "Lua.runtime.special": {
+        "include": "require"
+    },
+    "Lua.hover.expandAlias": false,
+    "Lua.diagnostics.groupFileStatus": {
+        "ambiguity": "Any",
+        "await": "Any",
+        "duplicate": "Any",
+        "global": "Any",
+        "luadoc": "Any",
+        "redefined": "Any",
+        "strict": "Any",
+        "type-check": "Any",
+        "unbalanced": "Any",
+        "unused": "Any"
+    },
+    "Lua.type.weakNilCheck": false,
+    "Lua.type.weakUnionCheck": false,
+    "Lua.type.castNumberToInteger": true,
+    "Lua.runtime.unicodeName": true,
+    "Lua.diagnostics.disable": [
+    ],
+    "Lua.diagnostics.globals": [
+        "dump"
+    ],
+}
