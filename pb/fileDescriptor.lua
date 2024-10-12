@@ -276,6 +276,58 @@ function M.pbL_EnumDescriptorProto(L, info)
     return PB_OK;
 end
 
+-- 枚举描述
+---@param L pb_Loader
+---@param info pbL_TypeInfo
+---@return integer
+function M.pbL_MessageOptions(L, info)
+    ---@type pb_Slice
+    ---@diagnostic disable-next-line: missing-fields
+    local s = {}
+    try_init_pbL_TypeInfo(info)
+    assert(pbL_beginmsg(L, s) == PB_OK)
+
+    while true do
+        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        if len == 0 then break end
+        if decode.pb_pair(7, PB_TVARINT) == tag then
+            local ret, v = pbL_readint32(L)
+            assert(ret == PB_OK) ---@cast v integer
+            info.is_map = v
+        else
+            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+        end
+    end
+
+    pbL_endmsg(L, s)
+    return PB_OK;
+end
+
+-- 枚举描述
+---@param L pb_Loader
+---@param info pbL_TypeInfo
+---@return integer
+function M.pbL_OneofDescriptorProto(L, info)
+    ---@type pb_Slice
+    ---@diagnostic disable-next-line: missing-fields
+    local s = {}
+    try_init_pbL_TypeInfo(info)
+    assert(pbL_beginmsg(L, s) == PB_OK)
+
+    while true do
+        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        if len == 0 then break end
+        if decode.pb_pair(1, PB_TBYTES) == tag then
+            assert(pbL_readbytes(L, pbL_add(info.oneof_decl)) == PB_OK)
+        else
+            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+        end
+    end
+
+    pbL_endmsg(L, s)
+    return PB_OK;
+end
+
 -- 描述符
 ---@param L pb_Loader
 ---@param info pbL_TypeInfo
@@ -286,7 +338,6 @@ function M.pbL_DescriptorProto(L, info)
     local s = {}
     try_init_pbL_TypeInfo(info)
     assert(pbL_beginmsg(L, s) == PB_OK)
-    --TODO 处理其他类型
     while true do
         local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
@@ -301,7 +352,9 @@ function M.pbL_DescriptorProto(L, info)
         elseif decode.pb_pair(4, PB_TBYTES) == tag then -- EnumDescriptorProto enum_type
             assert(M.pbL_EnumDescriptorProto(L, pbL_add(info.enum_type)) == PB_OK)
         elseif decode.pb_pair(8, PB_TBYTES) == tag then -- OneofDescriptorProto oneof_decl
+            assert(M.pbL_OneofDescriptorProto(L, info) == PB_OK)
         elseif decode.pb_pair(7, PB_TBYTES) == tag then -- MessageOptions options
+            assert(M.pbL_MessageOptions(L, info) == PB_OK)
         else
             if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
