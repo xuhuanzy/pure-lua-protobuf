@@ -147,8 +147,10 @@ local descriptor_pb =
 "Reflection"
 
 -- local x = string.byte(descriptor_pb, 1, #descriptor_pb)
+
 -- local byte_values = table.pack(string.byte(descriptor_pb, 1, #descriptor_pb))
 -- print(byte_values)
+-- print(string.char(table.unpack(byte_values)))
 return {
     descriptor_pb = descriptor_pb
 }

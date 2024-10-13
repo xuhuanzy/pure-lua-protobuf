@@ -58,6 +58,14 @@ local M = {}
 ---@field message_type pbL_TypeInfo[]
 ---@field extension pbL_FieldInfo[]
 
+---@param _table pbL_FileInfo
+local function try_init_pbL_FileInfo(_table)
+    _table.enum_type = _table.enum_type or {}
+    _table.message_type = _table.message_type or {}
+    _table.extension = _table.extension or {}
+    _table.package = _table.package or {}
+    _table.syntax = _table.syntax or {}
+end
 
 ---@param _table pbL_TypeInfo
 ---@return pbL_TypeInfo
@@ -131,7 +139,7 @@ local function pbL_beginmsg(L, pv)
     if ret ~= PB_OK then
         return ret
     end
-    pv.data = L.s.data
+    pv._data = L.s._data
     pv.pos = L.s.pos
     pv.start = L.s.start
     pv.end_pos = L.s.end_pos
@@ -371,6 +379,7 @@ function M.pbL_FileDescriptorProto(L, info)
     ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
     local s = {}
+    try_init_pbL_FileInfo(info)
     assert(pbL_beginmsg(L, s) == PB_OK)
     while true do
         local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
@@ -394,15 +403,14 @@ function M.pbL_FileDescriptorProto(L, info)
 end
 
 ---@param L pb_Loader
----@param files pbL_FileInfo
+---@param files pbL_FileInfo[]
 ---@return integer
 function M.pbL_FileDescriptorSet(L, files)
     while true do
         local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
         if decode.pb_pair(1, PB_TBYTES) == tag then
-            M.pbL_FileDescriptorProto(L, files)
-            break;
+            assert(M.pbL_FileDescriptorProto(L, pbL_add(files)) == PB_OK)
         else
             assert(decode.pb_skipvalue(L.s, tag) == PB_OK)
         end

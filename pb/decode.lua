@@ -1,5 +1,10 @@
 local pb_types = require "pb.types"
 
+local stringChar = string.char
+local tableUnpack= table.unpack
+local tablePack = table.pack
+local stringByte = string.byte
+
 ---@class PB.Decode
 local M = {}
 
@@ -9,8 +14,11 @@ local PB_T64BIT = pb_types.pb_WireType.PB_T64BIT
 local PB_T32BIT = pb_types.pb_WireType.PB_T32BIT
 local PB_TGSTART = pb_types.pb_WireType.PB_TGSTART
 
+---@alias Protobuf.Char integer
+
 ---@class pb_Slice
----@field data string? 数据
+-- -@field data string? 数据
+---@field _data Protobuf.Char[]
 ---@field pos? integer 当前位置
 ---@field start? integer 起始位置
 ---@field end_pos integer 结束位置
@@ -37,17 +45,35 @@ function M.pb_slice(s)
     end
 end
 
----@param s string?
+---@param s? string|Protobuf.Char[]
 ---@param len integer
 ---@return pb_Slice
 function M.pb_lslice(s, len)
     ---@type pb_Slice
     return {
-        data = s,
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        _data = s and (
+            type(s) == "string" and tablePack(stringByte(s, 1, len)) or s
+        ),
         pos = s and 1 or nil,
         start = s and 1 or nil,
         end_pos = len + 1
     }
+end
+
+-- 获取字符串
+---@param s pb_Slice
+---@return string?
+function M.getSliceString(s)
+    return s._data and stringChar(tableUnpack(s._data, s.pos, s.end_pos - 1))
+end
+
+-- 复制`Slice`, 返回`.pos`到`.end_pos`的数据
+---@param s pb_Slice
+---@return pb_Slice
+function M.sliceCopy(s)
+    local newData = tablePack(tableUnpack(s._data, s.pos, s.end_pos - 1))
+    return M.pb_lslice(newData, M.pb_len(s))
 end
 
 ---@param s pb_Slice
@@ -66,7 +92,7 @@ local function pb_readvarint_slow(s)
     local i = 0
     local ret_val = nil
     while (s.pos < s.end_pos and i < 10) do
-        local b = string.byte(s.data, pos)
+        local b = s._data[pos]
         pos = pos + 1
         n = n | ((b & 0x7F) << (i * 7))
         i = i + 1
@@ -90,7 +116,7 @@ local function pb_readvarint32_fallback(s)
     local result = 0
     local shift = 0
     while (shift < 32 and pos < s.end_pos) do
-        local byte = string.byte(s.data, pos)
+        local byte = s._data[pos]
         pos = pos + 1
         result = result | ((byte & 0x7F) << shift) -- 合并低7位
         if (byte & 0x80) == 0 then                 -- 最高位为0，说明已经读完
@@ -112,7 +138,7 @@ local function pb_readvarint64_fallback(s)
     local result = 0
     local shift = 0
     while true do
-        local byte = string.byte(s.data, pos)
+        local byte =s._data[pos]
         pos = pos + 1
         result = result | ((byte & 0x7F) << shift) -- 合并低7位
         if (byte & 0x80) == 0 then                 -- 最高位为0，说明已经读完
@@ -140,12 +166,12 @@ function M.pb_readvarint32(s)
         return 0
     end
     -- 如果最高位为0，说明该字节是最后一个字节，直接返回
-    if (string.byte(s.data, s.pos) & 0x80) == 0 then
-        ret_val = string.byte(s.data, s.pos)
+    if (s._data[s.pos] & 0x80) == 0 then
+        ret_val = s._data[s.pos]
         s.pos = s.pos + 1
         return 1, ret_val
     end
-    if M.pb_len(s) >= 10 or (string.byte(s.data, s.end_pos) & 0x80) == 0 then
+    if M.pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
         return pb_readvarint32_fallback(s)
     end
 
@@ -168,12 +194,12 @@ function M.pb_readvarint64(s)
     ---@type integer?
     local ret_val = nil
     -- 如果最高位为0，说明该字节是最后一个字节，直接返回
-    if (string.byte(s.data, s.pos) & 0x80) == 0 then
-        ret_val = string.byte(s.data, s.pos)
+    if (s._data[s.pos] & 0x80) == 0 then
+        ret_val = s._data[s.pos]
         s.pos = s.pos + 1
         return 1, ret_val
     end
-    if M.pb_len(s) >= 10 or (string.byte(s.data, s.end_pos) & 0x80) == 0 then
+    if M.pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
         return pb_readvarint64_fallback(s)
     end
     return pb_readvarint_slow(s)
@@ -191,7 +217,7 @@ function M.pb_readbytes(s, pv)
         return 0
     end
     -- 2. 如果长度足够，设置 pv 的 start, pos, 和 end_pos
-    pv.data = s.data
+    pv._data = s._data
     pv.pos = s.pos
     pv.start = s.start
     pv.end_pos = s.pos + value
@@ -205,7 +231,7 @@ end
 local function pb_skipvarint(s)
     local pos = s.pos
     local op = pos
-    while pos < s.end_pos and (string.byte(s.data, pos) & 0x80) ~= 0 do
+    while pos < s.end_pos and (s._data[pos] & 0x80) ~= 0 do
         pos = pos + 1
     end
     if pos >= s.end_pos then
