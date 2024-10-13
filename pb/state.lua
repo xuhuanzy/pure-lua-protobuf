@@ -3,8 +3,8 @@
 ---@field local_state pb_State
 ---@field cache pb_Cache
 ---@field buffer pb_Buffer
----@field array_type pb_Type
----@field map_type pb_Type
+---@field array_type Protobuf.Type
+---@field map_type Protobuf.Type
 ---@field defs_index integer
 ---@field enc_hooks_index integer
 ---@field dec_hooks_index integer
@@ -30,20 +30,18 @@ local function lpb_lstate()
         CurrentState = {}
         ---@diagnostic disable-next-line: missing-fields
         CurrentState.array_type = {
-            is_dead = 1,
+            is_dead = true,
         }
         ---@diagnostic disable-next-line: missing-fields
         CurrentState.map_type = {
-            is_dead = 1,
+            is_dead = true,
         }
         CurrentState.defs_index = -2      -- LUA_NOREF
         CurrentState.enc_hooks_index = -2 -- LUA_NOREF
         CurrentState.dec_hooks_index = -2 -- LUA_NOREF
         CurrentState.local_state = {
             ---@diagnostic disable-next-line: missing-fields
-            types = {
-                hash = {},
-            },
+            types = {},
             ---@diagnostic disable-next-line: missing-fields
             fieldpool = {},
             ---@diagnostic disable-next-line: missing-fields

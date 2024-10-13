@@ -1,15 +1,14 @@
 local decode = require "pb.decode"
-local pb_types = require "pb.types"
+local ConstantDefine = require "pb.ConstantDefine"
 
 
-local PB_OK = pb_types.PB_OK
-local PB_ERROR = pb_types.PB_ERROR
-
-local PB_TBYTES = pb_types.pb_WireType.PB_TBYTES
-local PB_TVARINT = pb_types.pb_WireType.PB_TVARINT
-local PB_T64BIT = pb_types.pb_WireType.PB_T64BIT
-local PB_T32BIT = pb_types.pb_WireType.PB_T32BIT
-local PB_TGSTART = pb_types.pb_WireType.PB_TGSTART
+local PB_OK = ConstantDefine.PB_OK
+local PB_ERROR = ConstantDefine.PB_ERROR
+local PB_TBYTES = ConstantDefine.pb_WireType.PB_TBYTES
+local PB_TVARINT = ConstantDefine.pb_WireType.PB_TVARINT
+local PB_T64BIT = ConstantDefine.pb_WireType.PB_T64BIT
+local PB_T32BIT = ConstantDefine.pb_WireType.PB_T32BIT
+local PB_TGSTART = ConstantDefine.pb_WireType.PB_TGSTART
 
 -- 模拟数组, 添加一个新的元素, 返回这个元素
 ---@param _table table
@@ -39,12 +38,12 @@ local M = {}
 ---@field label integer
 ---@field type integer
 ---@field oneof_index integer
----@field packed integer
+---@field packed? boolean # 是否是`packed`类型, packed: 压缩
 
 
 ---@class pbL_TypeInfo
 ---@field name pb_Slice
----@field is_map integer
+---@field is_map boolean
 ---@field field pbL_FieldInfo[]
 ---@field extension pbL_FieldInfo[]
 ---@field enum_type pbL_EnumInfo[]
@@ -168,7 +167,7 @@ function M.pbL_FieldOptions(L, info)
         if decode.pb_pair(2, PB_TVARINT) == tag then -- bool packed
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
-            info.packed = v
+            info.packed = v ~= 0
         else
             if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
@@ -187,7 +186,7 @@ function M.pbL_FieldDescriptorProto(L, info)
     local s = {}
     try_init_pbL_FieldInfo(info)
     assert(pbL_beginmsg(L, s) == PB_OK)
-    info.packed = -1
+    info.packed = nil
 
     while true do
         local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
@@ -301,7 +300,7 @@ function M.pbL_MessageOptions(L, info)
         if decode.pb_pair(7, PB_TVARINT) == tag then
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
-            info.is_map = v
+            info.is_map = v ~= 0
         else
             if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end

@@ -1,4 +1,5 @@
-
+local tool = require "pb.tool"
+local meta = tool.meta
 ---@alias pb_Name string
 
 ---@class pb_NameEntry
@@ -6,7 +7,7 @@
 ---@field hash integer
 ---@field length integer
 ---@field refcount integer
----@field name string
+---@field name pb_Name
 
 ---@class pb_NameTable
 ---@field size integer
@@ -14,7 +15,7 @@
 ---@field hash pb_NameEntry[]
 
 ---@class pb_CacheSlot
----@field name string
+---@field name pb_Name
 ---@field hash integer
 
 ---@class pb_Cache
@@ -23,39 +24,12 @@
 
 ---@class pb_State
 ---@field nametable pb_NameTable
----@field types pb_Table
+---@field types { [pb_Name]: Protobuf.Type }
 ---@field typepool pb_Pool
 ---@field fieldpool pb_Pool
 
 ---@class pb_Pool
 ---@field obj_size integer
-
----@class pb_Field
----@field name pb_Name
----@field type pb_Type
----@field default_value pb_Name
----@field number integer
----@field sort_index integer
----@field oneof_idx integer
----@field type_id integer
----@field repeated integer
----@field packed integer
----@field scalar integer
-
----@class pb_Type
----@field name pb_Name
----@field basename string
----@field field_sort pb_Field
----@field field_tags pb_Table
----@field field_names pb_Table
----@field oneof_index pb_Table
----@field oneof_count integer # extra field count from oneof entries
----@field oneof_field integer  #  extra field in oneof declarations
----@field field_count integer
----@field is_enum integer
----@field is_map integer
----@field is_proto3 integer
----@field is_dead integer
 
 
 ---@class pb_Table
@@ -70,3 +44,36 @@
 ---@field key integer
 
 
+
+---@class Protobuf.Field
+---@field name pb_Name
+---@field type Protobuf.Type
+---@field default_value? pb_Name
+---@field number integer
+---@field sort_index integer
+---@field oneof_idx integer
+---@field type_id integer
+---@field repeated boolean # 是否是`repeated`类型, repeated: 可重复
+---@field packed boolean # 是否是`packed`类型, packed: 压缩
+---@field scalar boolean # 是否是`scalar`类型, scalar: 标量
+local ProtobufField = meta("Protobuf.Field")
+
+---@param name pb_Name
+---@param type Protobuf.Type
+---@param number integer
+---@return Protobuf.Field
+function ProtobufField.new(name, type, number)
+    ---@type Protobuf.Field
+---@diagnostic disable-next-line: missing-fields
+    local self = {
+        name = name,
+        type = type,
+        number = number,
+
+    }
+    return setmetatable(self, ProtobufField)
+end
+
+return {
+    ProtobufField = ProtobufField
+}

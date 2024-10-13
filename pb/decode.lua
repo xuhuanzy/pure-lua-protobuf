@@ -1,7 +1,7 @@
-local pb_types = require "pb.types"
+local pb_types = require "pb.ConstantDefine"
 
 local stringChar = string.char
-local tableUnpack= table.unpack
+local tableUnpack = table.unpack
 local tablePack = table.pack
 local stringByte = string.byte
 
@@ -13,6 +13,7 @@ local PB_TVARINT = pb_types.pb_WireType.PB_TVARINT
 local PB_T64BIT = pb_types.pb_WireType.PB_T64BIT
 local PB_T32BIT = pb_types.pb_WireType.PB_T32BIT
 local PB_TGSTART = pb_types.pb_WireType.PB_TGSTART
+local PB_TGEND = pb_types.pb_WireType.PB_TGEND
 
 ---@alias Protobuf.Char integer
 
@@ -138,7 +139,7 @@ local function pb_readvarint64_fallback(s)
     local result = 0
     local shift = 0
     while true do
-        local byte =s._data[pos]
+        local byte = s._data[pos]
         pos = pos + 1
         result = result | ((byte & 0x7F) << shift) -- 合并低7位
         if (byte & 0x80) == 0 then                 -- 最高位为0，说明已经读完
@@ -241,6 +242,60 @@ local function pb_skipvarint(s)
     s.pos = pos
     return pos - op
 end
+
+---@param s pb_Slice
+---@param len integer
+---@return integer
+local function pb_skipslice(s, len)
+    if s.pos + len > s.end_pos then return 0 end
+    s.pos = s.pos + len
+    return len
+end
+--[[
+PB_API size_t pb_readgroup(pb_Slice *s, uint32_t tag, pb_Slice *pv) {
+    const char *p = s->p;
+    uint32_t newtag = 0;
+    size_t count;
+    assert(pb_gettype(tag) == PB_TGSTART);
+    while ((count = pb_readvarint32(s, &newtag)) != 0) {
+        if (pb_gettype(newtag) == PB_TGEND) {
+            if (pb_gettag(newtag) != pb_gettag(tag))
+                break;
+            pv->start = s->start;
+            pv->p = p;
+            pv->end = s->p - count;
+            return s->p - p;
+        }
+        if (pb_skipvalue(s, newtag) == 0) break;
+    }
+    s->p = p;
+    return 0;
+} ]]
+
+---@param s pb_Slice
+---@param tag integer
+---@param pv pb_Slice
+---@return integer
+local function pb_readgroup(s, tag, pv)
+    local pos = s.pos
+    assert(M.pb_gettype(tag) == PB_TGSTART)
+    while true do
+        local count, newtag = M.pb_readvarint32(s)
+        if count == 0 then break end ---@cast newtag integer
+        if M.pb_gettype(newtag) == PB_TGEND then
+            if M.pb_gettag(newtag) ~= M.pb_gettag(tag) then break end
+            pv._data = s._data
+            pv.pos = s.pos
+            pv.start = s.start
+            pv.end_pos = s.pos - count
+            return s.pos - pos
+        end
+        if M.pb_skipvalue(s, newtag) == 0 then break end
+    end
+    s.pos = pos
+    return 0
+end
+
 ---@param s pb_Slice
 ---@return integer
 local function pb_skipbytes(s)
@@ -271,12 +326,14 @@ function M.pb_skipvalue(s, tag)
     if switchTag == PB_TVARINT then
         ret = pb_skipvarint(s)
     elseif switchTag == PB_T64BIT then
+        ret = pb_skipslice(s, 8)
     elseif switchTag == PB_TBYTES then
         ret = pb_skipbytes(s)
     elseif switchTag == PB_T32BIT then
+        ret = pb_skipslice(s, 4)
     elseif switchTag == PB_TGSTART then
+        ret = pb_readgroup(s, tag, data)
     end
-
     if ret == 0 then
         s.pos = pos
     end

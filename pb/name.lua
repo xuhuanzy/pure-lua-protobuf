@@ -8,12 +8,15 @@ local PB_MIN_STRTABLE_SIZE = 16
 local PB_MIN_HASHTABLE_SIZE = 8
 local PB_HASHLIMIT = 5
 
+---@class Export.Protobuf.Name
+local Export = {}
+
 
 ---@param name pb_NameEntry
 ---@return pb_Name
 local function pb_usename(name)
     if name then
-        name.refcount = name.refcount + 1   
+        name.refcount = name.refcount + 1
     end
     return name.name
 end
@@ -86,15 +89,15 @@ local function pbN_getname(state, s, hash)
 end
 
 ---@param state pb_State
----@param new_size integer
+---@param size integer
 ---@return boolean
-local function pbN_resize(state, new_size)
+local function pbN_resize(state, size)
     local nt = state.nametable
     local newsize = PB_MIN_STRTABLE_SIZE
-    while newsize < PB_MAX_HASHSIZE and newsize < nt.size do
+    while newsize < PB_MAX_HASHSIZE and newsize < size do
         newsize = newsize << 1
     end
-    if newsize < nt.size then
+    if newsize < size then
         return false
     end
     ---@type pb_NameEntry[]
@@ -103,9 +106,8 @@ local function pbN_resize(state, new_size)
         local entry = nt.hash[i]
         while entry do
             local next = entry.next
-            -- 计算新哈希桶位置   
+            -- 计算新哈希桶位置
             local newHashIndex = entry.hash & (newsize - 1)
-            hash[newHashIndex] = hash[newHashIndex] or {}
             -- 获取新哈希桶链表头
             local newh = hash[newHashIndex]
             -- 先更新当前 entry 的 next 指针
@@ -133,11 +135,9 @@ local function pbN_newname(state, s, hash)
         return nil
     end
     local hashIndex = hash & (nt.size - 1)
-    nt.hash[hashIndex] = nt.hash[hashIndex] or {}
-    local list = nt.hash[hashIndex]
     ---@type pb_NameEntry
     local newobj = {
-        next = list,
+        next =  nt.hash[hashIndex],
         length = len,
         refcount = 0,
         hash = hash,
@@ -148,11 +148,11 @@ local function pbN_newname(state, s, hash)
     return newobj
 end
 
-
+---export
 ---@param state pb_State
 ---@param s pb_Slice
----@return pb_Name?
-local function pb_newname(state, s)
+---@return pb_NameEntry?
+function Export.pb_newname(state, s)
     if not s.pos then
         return nil
     end
@@ -161,23 +161,35 @@ local function pb_newname(state, s)
     if not entry then
         entry = pbN_newname(state, s, hash)
     end
-    return entry and pb_usename(entry ) or nil
+    if entry then
+        pb_usename(entry)
+    end
+
+    return entry
 end
 
+---export
 ---@param state pb_State
 ---@param s pb_Slice
 ---@return pb_Name?
-local function pb_name(state, s)
-    if not state or not s.pos then
-        return nil
-    end
-    local entry = pbN_getname(state, s, pbN_calchash(s))
+function Export.getNewName(state, s)
+    local entry = Export.pb_newname(state, s)
     return entry and entry.name or nil
 end
 
 
----@class PB.Name
-return {
-    pb_newname = pb_newname,
-    pb_name = pb_name
-}
+---export
+---@param state pb_State
+---@param s pb_Slice
+---@return pb_NameEntry?
+function Export.pb_name(state, s)
+    if not state or not s.pos then
+        return nil
+    end
+    local entry = pbN_getname(state, s, pbN_calchash(s))
+    return entry
+end
+
+
+
+return Export
