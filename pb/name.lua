@@ -1,6 +1,6 @@
-local decode = require("pb.decode")
-local pb_len = decode.pb_len
-local getSliceString = decode.getSliceString
+local util = require("pb.util")
+local pb_len = util.pb_len
+local getSliceString = util.getSliceString
 
 local PB_MAX_SIZET = (0xFFFFFFFF - 100)
 local PB_MAX_HASHSIZE = (0xFFFFFFFF - 100)
@@ -178,7 +178,6 @@ function Export.getNewName(state, s)
 end
 
 
----export
 ---@param state pb_State
 ---@param s pb_Slice
 ---@return pb_NameEntry?
@@ -188,6 +187,14 @@ function Export.pb_name(state, s)
     end
     local entry = pbN_getname(state, s, pbN_calchash(s))
     return entry
+end
+
+---@param state pb_State
+---@param s pb_Slice
+---@return string?
+function Export.getName(state, s)
+    local entry = Export.pb_name(state, s)
+    return entry and entry.name or nil
 end
 
 

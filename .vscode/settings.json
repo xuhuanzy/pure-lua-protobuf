@@ -1,7 +1,4 @@
 {
-    "files.associations": {
-        "lauxlib.h": "c"
-    },
     "Lua.workspace.preloadFileSize": 5000,
     "Lua.runtime.pathStrict": true,
     "Lua.runtime.special": {

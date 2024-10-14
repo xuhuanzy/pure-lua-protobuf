@@ -1,6 +1,7 @@
 local fileDescriptor = require("pb.fileDescriptor")
 local decode = require("pb.decode")
 local PbName = require("pb.name")
+local util = require("pb.util")
 local ConstantDefine = require "pb.ConstantDefine"
 local defaultTable = require "pb.tool".defaultTable
 
@@ -12,7 +13,6 @@ local PB_ERROR = ConstantDefine.PB_ERROR
 local PB_Tmessage = ConstantDefine.pb_FieldType.PB_Tmessage
 local PB_Tenum = ConstantDefine.pb_FieldType.PB_Tenum
 
-local pb_slice = decode.pb_slice
 local tableInsert = table.insert
 local pb_newname = PbName.pb_newname
 local getNewName = PbName.getNewName
@@ -21,7 +21,6 @@ local TestGobalDefine = require "test.TestGobalDefine"
 
 ---@class pb_Loader
 ---@field s pb_Slice
----@field b pb_Buffer
 ---@field is_proto3 boolean
 
 ---@class PB.Loader
@@ -33,7 +32,7 @@ local M = {}
 ---@param isoOut boolean 
 ---@return pb_NameEntry?
 local function pbL_prefixname(state, s, isoOut)
-    local copy = decode.sliceCopy(s)
+    local copy = util.sliceCopy(s)
     -- `46` 等价于`string.byte(".")`
     tableInsert(copy._data, 1, 46)
     copy.end_pos = copy.end_pos + 1
@@ -170,7 +169,7 @@ end
 ---@param info pbL_FileInfo[]
 ---@param L pb_Loader
 local function loadDescriptorFiles(state, info, L)
-    local syntax = PbName.pb_newname(state, pb_slice("proto3"))
+    local syntax = PbName.pb_newname(state, util.pb_slice("proto3"))
     assert(syntax, "syntax error")
     for i, fileInfo in ipairs(info) do
         if fileInfo.package.pos then

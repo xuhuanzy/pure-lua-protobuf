@@ -28,7 +28,7 @@ do
 end
 
 -- 定义一个包含 Field Type 的表
-local PB_FIELD_TYPES = {
+local PB_TYPES = {
     { name = "double",   type = "double",   fmt = 'F' },
     { name = "float",    type = "float",    fmt = 'f' },
     { name = "int64",    type = "int64",    fmt = 'I' },
@@ -76,7 +76,7 @@ do
 
     pb_FieldType.PB_TNONE = index
     index = index + 1
-    for i, v in ipairs(PB_FIELD_TYPES) do
+    for i, v in ipairs(PB_TYPES) do
         pb_FieldType["PB_T" .. v.name] = index
         index = index + 1
     end

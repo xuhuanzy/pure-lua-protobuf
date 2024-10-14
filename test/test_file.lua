@@ -1,8 +1,10 @@
 local loader = require("pb.loader")
 local decode = require("pb.decode")
-local PB_state = require("pb.state")
-local TestGobalDefine = require("test.TestGobalDefine")
-local state = PB_state.lpb_lstate()
+local util = require("pb.util")
+local State = require("pb.state")
 
-loader.pb_load(state.local_state, decode.pb_slice(TestGobalDefine.descriptor_pb))
-loader.pb_load(state.local_state, decode.pb_slice(TestGobalDefine.descriptor_pb))
+local TestGobalDefine = require("test.TestGobalDefine")
+local state = State.lpb_lstate()
+
+loader.pb_load(state.local_state, util.pb_slice(TestGobalDefine.descriptor_pb))
+loader.pb_load(state.local_state, util.pb_slice(TestGobalDefine.descriptor_pb))

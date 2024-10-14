@@ -1,8 +1,10 @@
+---@class Export.Protobuf.State
+local M = {}
+
 ---@class lpb_State 全局状态, 允许配置
 ---@field state pb_State
 ---@field local_state pb_State
 ---@field cache pb_Cache
----@field buffer pb_Buffer
 ---@field array_type Protobuf.Type
 ---@field map_type Protobuf.Type
 ---@field defs_index integer
@@ -24,7 +26,7 @@ local CurrentState = nil
 
 -- 获取当前状态
 ---@return lpb_State
-local function lpb_lstate()
+function M.lpb_lstate()
     if not CurrentState then
         ---@diagnostic disable-next-line: missing-fields
         CurrentState = {}
@@ -58,6 +60,50 @@ local function lpb_lstate()
     return CurrentState
 end
 
-return {
-    lpb_lstate = lpb_lstate
-}
+
+-- 从数据库搜索类型
+---@param state pb_State
+---@param tname pb_Name
+---@return Protobuf.Type?
+function M.pb_type(state, tname)
+    if not state or not tname then
+        return nil
+    end
+    local _type = state.types[tname]
+    if _type and (not _type.is_dead) then
+        return _type
+    end
+    return nil
+end
+
+
+---@param protobufType Protobuf.Type
+---@param number integer
+---@return Protobuf.Field?
+function M.pb_field(protobufType, number)
+    if not protobufType then
+        return nil
+    end
+    return protobufType.field_tags[number]
+end
+
+--[[ 
+PB_API const pb_Field *pb_fname(const pb_Type *t, const pb_Name *name) {
+    pb_FieldEntry *fe = NULL;
+    if (t != NULL && name != NULL)
+        fe = (pb_FieldEntry *) pb_gettable(&t->field_names, (pb_Key) name);
+    return fe ? fe->value : NULL;
+} ]]
+
+---@param protobufType Protobuf.Type
+---@param name pb_Name?
+---@return Protobuf.Field?
+function M.pb_fname(protobufType, name)
+    if not protobufType or not name then
+        return nil
+    end
+    return protobufType.field_names[name]
+end
+
+
+return M

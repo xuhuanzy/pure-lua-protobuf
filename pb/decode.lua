@@ -1,4 +1,5 @@
 local pb_types = require "pb.ConstantDefine"
+local util = require("pb.util")
 
 local stringChar = string.char
 local tableUnpack = table.unpack
@@ -14,6 +15,28 @@ local PB_T64BIT = pb_types.pb_WireType.PB_T64BIT
 local PB_T32BIT = pb_types.pb_WireType.PB_T32BIT
 local PB_TGSTART = pb_types.pb_WireType.PB_TGSTART
 local PB_TGEND = pb_types.pb_WireType.PB_TGEND
+local PB_TWIRECOUNT = pb_types.pb_WireType.PB_TWIRECOUNT
+
+local PB_Tdouble = pb_types.pb_FieldType.PB_Tdouble
+local PB_Tfloat = pb_types.pb_FieldType.PB_Tfloat
+local PB_Tint64 = pb_types.pb_FieldType.PB_Tint64
+local PB_Tuint64 = pb_types.pb_FieldType.PB_Tuint64
+local PB_Tint32 = pb_types.pb_FieldType.PB_Tint32
+local PB_Tfixed64 = pb_types.pb_FieldType.PB_Tfixed64
+local PB_Tfixed32 = pb_types.pb_FieldType.PB_Tfixed32
+local PB_Tbool = pb_types.pb_FieldType.PB_Tbool
+local PB_Tstring = pb_types.pb_FieldType.PB_Tstring
+local PB_Tmessage = pb_types.pb_FieldType.PB_Tmessage
+local PB_Tbytes = pb_types.pb_FieldType.PB_Tbytes
+local PB_Tuint32 = pb_types.pb_FieldType.PB_Tuint32
+local PB_Tenum = pb_types.pb_FieldType.PB_Tenum
+local PB_Tsfixed32 = pb_types.pb_FieldType.PB_Tsfixed32
+local PB_Tsfixed64 = pb_types.pb_FieldType.PB_Tsfixed64
+local PB_Tsint32 = pb_types.pb_FieldType.PB_Tsint32
+local PB_Tsint64 = pb_types.pb_FieldType.PB_Tsint64
+
+
+
 
 ---@alias Protobuf.Char integer
 
@@ -36,51 +59,46 @@ function M.pb_pair(tag, type)
     return (tag) << 3 | ((type) & 7)
 end
 
----@param s string?
----@return pb_Slice
-function M.pb_slice(s)
-    if s then
-        return M.pb_lslice(s, #s)
+
+
+function M.pb_wtypebytype(type)
+    if type == PB_Tdouble then
+        return PB_T64BIT
+    elseif type == PB_Tfloat then
+        return PB_T32BIT
+    elseif type == PB_Tint64 then
+        return PB_TVARINT
+    elseif type == PB_Tuint64 then
+        return PB_TVARINT
+    elseif type == PB_Tint32 then
+        return PB_TVARINT
+    elseif type == PB_Tfixed64 then
+        return PB_T64BIT
+    elseif type == PB_Tfixed32 then
+        return PB_T32BIT
+    elseif type == PB_Tbool then
+        return PB_TVARINT
+    elseif type == PB_Tstring then
+        return PB_TBYTES
+    elseif type == PB_Tmessage then
+        return PB_TBYTES
+    elseif type == PB_Tbytes then
+        return PB_TBYTES
+    elseif type == PB_Tuint32 then
+        return PB_TVARINT
+    elseif type == PB_Tenum then
+        return PB_TVARINT
+    elseif type == PB_Tsfixed32 then
+        return PB_T32BIT
+    elseif type == PB_Tsfixed64 then
+        return PB_T64BIT
+    elseif type == PB_Tsint32 then
+        return PB_TVARINT
+    elseif type == PB_Tsint64 then
+        return PB_TVARINT
     else
-        return M.pb_lslice(nil, 0)
+        return PB_TWIRECOUNT
     end
-end
-
----@param s? string|Protobuf.Char[]
----@param len integer
----@return pb_Slice
-function M.pb_lslice(s, len)
-    ---@type pb_Slice
-    return {
-        ---@diagnostic disable-next-line: assign-type-mismatch
-        _data = s and (
-            type(s) == "string" and tablePack(stringByte(s, 1, len)) or s
-        ),
-        pos = s and 1 or nil,
-        start = s and 1 or nil,
-        end_pos = len + 1
-    }
-end
-
--- 获取字符串
----@param s pb_Slice
----@return string?
-function M.getSliceString(s)
-    return s._data and stringChar(tableUnpack(s._data, s.pos, s.end_pos - 1))
-end
-
--- 复制`Slice`, 返回`.pos`到`.end_pos`的数据
----@param s pb_Slice
----@return pb_Slice
-function M.sliceCopy(s)
-    local newData = tablePack(tableUnpack(s._data, s.pos, s.end_pos - 1))
-    return M.pb_lslice(newData, M.pb_len(s))
-end
-
----@param s pb_Slice
----@return integer
-function M.pb_len(s)
-    return s.end_pos - s.pos
 end
 
 -- 慢速逐字节读取, 返回值为64位整数
@@ -172,7 +190,7 @@ function M.pb_readvarint32(s)
         s.pos = s.pos + 1
         return 1, ret_val
     end
-    if M.pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
+    if util.pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
         return pb_readvarint32_fallback(s)
     end
 
@@ -200,7 +218,7 @@ function M.pb_readvarint64(s)
         s.pos = s.pos + 1
         return 1, ret_val
     end
-    if M.pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
+    if util.pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
         return pb_readvarint64_fallback(s)
     end
     return pb_readvarint_slow(s)
@@ -213,7 +231,7 @@ function M.pb_readbytes(s, pv)
     local pos = s.pos
     -- 1. 读取 varint 编码的长度值
     local len, value = M.pb_readvarint64(s)
-    if len == 0 or M.pb_len(s) < value then
+    if len == 0 or util.pb_len(s) < value then
         s.pos = pos
         return 0
     end
@@ -251,26 +269,6 @@ local function pb_skipslice(s, len)
     s.pos = s.pos + len
     return len
 end
---[[
-PB_API size_t pb_readgroup(pb_Slice *s, uint32_t tag, pb_Slice *pv) {
-    const char *p = s->p;
-    uint32_t newtag = 0;
-    size_t count;
-    assert(pb_gettype(tag) == PB_TGSTART);
-    while ((count = pb_readvarint32(s, &newtag)) != 0) {
-        if (pb_gettype(newtag) == PB_TGEND) {
-            if (pb_gettag(newtag) != pb_gettag(tag))
-                break;
-            pv->start = s->start;
-            pv->p = p;
-            pv->end = s->p - count;
-            return s->p - p;
-        }
-        if (pb_skipvalue(s, newtag) == 0) break;
-    }
-    s->p = p;
-    return 0;
-} ]]
 
 ---@param s pb_Slice
 ---@param tag integer
@@ -304,7 +302,7 @@ local function pb_skipbytes(s)
     if len == 0 then
         return 0
     end
-    if M.pb_len(s) < value then
+    if util.pb_len(s) < value then
         s.pos = pos
         return 0
     end
