@@ -21,8 +21,11 @@ local M = {}
 ---@field encode_order boolean
 
 
----@type lpb_State 当前的全局状态, 允许切换
+---@type lpb_State 当前的状态, 允许切换
 local CurrentState = nil
+
+---@type pb_State  全局数据库状态
+M.GlobalState = nil
 
 -- 获取当前状态
 ---@return lpb_State

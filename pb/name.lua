@@ -38,27 +38,6 @@ local function pbN_calchash(s)
 end
 
 
--- ---@param t1 pb_Slice
--- ---@param t2 pb_Slice
--- ---@return boolean
--- local function slice_equal(t1, t2)
---     if t1.pos ~= t2.pos then
---         return false
---     end
---     if t1.end_pos ~= t2.end_pos then
---         return false
---     end
---     local t1_data = t1._data
---     local t2_data = t2._data
---     for i = t1.pos, t1.end_pos - 1 do
---         if t1_data[i] ~= t2_data[i] then
---             return false
---         end
---     end
-
---     return true
--- end
-
 ---@param t1 pb_Slice
 ---@param name string
 ---@return boolean
@@ -137,7 +116,7 @@ local function pbN_newname(state, s, hash)
     local hashIndex = hash & (nt.size - 1)
     ---@type pb_NameEntry
     local newobj = {
-        next =  nt.hash[hashIndex],
+        next = nt.hash[hashIndex],
         length = len,
         refcount = 0,
         hash = hash,
@@ -145,6 +124,7 @@ local function pbN_newname(state, s, hash)
     }
     nt.hash[hashIndex] = newobj
     nt.count = nt.count + 1
+    -- print(newobj.name)
     return newobj
 end
 
@@ -177,7 +157,6 @@ function Export.getNewName(state, s)
     return entry and entry.name or nil
 end
 
-
 ---@param state pb_State
 ---@param s pb_Slice
 ---@return pb_NameEntry?
@@ -196,7 +175,5 @@ function Export.getName(state, s)
     local entry = Export.pb_name(state, s)
     return entry and entry.name or nil
 end
-
-
 
 return Export

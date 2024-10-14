@@ -4,6 +4,9 @@ local PbName = require("pb.name")
 local util = require("pb.util")
 local ConstantDefine = require "pb.ConstantDefine"
 local defaultTable = require "pb.tool".defaultTable
+local BytesOperation = require "pb.BytesOperation"
+
+local State = require("pb.state")
 
 local ProtobufType = require "pb.type".ProtobufType
 local ProtobufField = require "pb.field".ProtobufField
@@ -20,8 +23,9 @@ local getNewName = PbName.getNewName
 local TestGobalDefine = require "test.TestGobalDefine"
 
 ---@class pb_Loader
----@field s pb_Slice
----@field is_proto3 boolean
+---@field s pb_Slice 需要处理的数据
+---@field is_proto3 boolean 是否是proto3
+---@field b Protobuf.Char[] 自己的数据
 
 ---@class PB.Loader
 local M = {}
@@ -29,17 +33,19 @@ local M = {}
 
 ---@param state pb_State
 ---@param s pb_Slice
----@param isoOut boolean 
----@return pb_NameEntry?
-local function pbL_prefixname(state, s, isoOut)
-    local copy = util.sliceCopy(s)
+---@param L pb_Loader
+---@param isoOut boolean
+---@return pb_NameEntry? name 名称
+---@return integer curPos 当前位置
+local function pbL_prefixname(state, s, L, isoOut)
+    local curPos = #L.b
     -- `46` 等价于`string.byte(".")`
-    tableInsert(copy._data, 1, 46)
-    copy.end_pos = copy.end_pos + 1
+    L.b[#L.b + 1] = 46
+    BytesOperation.pb_addslice(L.b, s)
     if not isoOut then
-        return nil
+        return nil, curPos
     end
-    return PbName.pb_newname(state, copy)
+    return PbName.pb_newname(state, util.pb_lslice(L.b, #L.b)), curPos
 end
 
 
@@ -86,15 +92,20 @@ end
 ---@param info pbL_EnumInfo
 ---@param L pb_Loader
 local function pbL_loadEnum(state, info, L)
-    local name = pbL_prefixname(state, info.name, true).name
-    assert(name, "name error")
-    local t = pb_newtype(state, name)
+    local nameEntry, curPos = pbL_prefixname(state, info.name, L, true)
+    ---@cast nameEntry pb_NameEntry
+    assert(nameEntry, "name error")
+    local t = pb_newtype(state, nameEntry.name)
     assert(t, "newtype error")
     t.is_enum = true
     for i, enumTypeInfo in ipairs(info.value) do
         local nameEntry = pb_newname(state, enumTypeInfo.name)
         assert(nameEntry, "nameEntry error")
         local f = pb_newfield(state, t, nameEntry.name, enumTypeInfo.number)
+    end
+    --删除后面的名称
+    for i = curPos + 1, #L.b do
+        L.b[i] = nil
     end
 end
 
@@ -140,8 +151,9 @@ end
 ---@param info pbL_TypeInfo
 ---@param L pb_Loader
 local function pbL_loadType(state, info, L)
-    local name = pbL_prefixname(state, info.name, true).name
-    local t = pb_newtype(state, name)
+    local nameEntry, curPos = pbL_prefixname(state, info.name, L, true)
+    ---@cast nameEntry pb_NameEntry
+    local t = pb_newtype(state, nameEntry.name)
     assert(t)
     t.is_map = info.is_map
     t.is_proto3 = L.is_proto3
@@ -163,6 +175,10 @@ local function pbL_loadType(state, info, L)
         pbL_loadType(state, nestedTypeInfo, L)
     end
     t.oneof_count = #info.oneof_decl
+    --删除后面的名称
+    for i = curPos + 1, #L.b do
+        L.b[i] = nil
+    end
 end
 
 ---@param state pb_State
@@ -170,10 +186,11 @@ end
 ---@param L pb_Loader
 local function loadDescriptorFiles(state, info, L)
     local syntax = PbName.pb_newname(state, util.pb_slice("proto3"))
+    local _, curPos = 0, 0
     assert(syntax, "syntax error")
     for i, fileInfo in ipairs(info) do
         if fileInfo.package.pos then
-            pbL_prefixname(state, fileInfo.package, false)
+            _, curPos = pbL_prefixname(state, fileInfo.package, L, false)
         end
         local syntaxName = PbName.pb_name(state, fileInfo.syntax)
         L.is_proto3 = (syntaxName and syntaxName.name == syntax.name or false)
@@ -185,6 +202,10 @@ local function loadDescriptorFiles(state, info, L)
         end
         for j, extension in ipairs(fileInfo.extension) do
             pbL_loadField(state, extension, L, nil)
+        end
+        --删除后面的名称
+        for j = curPos + 1, #L.b do
+            L.b[j] = nil
         end
     end
 end
@@ -198,13 +219,23 @@ function M.pb_load(state, s)
     local files = {}
     ---@type pb_Loader
     local L = {
-        ---@diagnostic disable-next-line: missing-fields
         b = {},
         s = s,
         is_proto3 = false
     }
     fileDescriptor.pbL_FileDescriptorSet(L, files)
     loadDescriptorFiles(state, files, L)
+end
+
+---@param data any
+---@return boolean @是否成功
+---@return integer @当前数据位置
+function M.Load(data)
+    local state = State.lpb_lstate()
+    local s = util.pb_slice(data)
+    M.pb_load(state.local_state, s)
+    State.GlobalState = state.local_state
+    return true, s.pos - s.start + 1
 end
 
 return M

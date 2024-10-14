@@ -55,9 +55,14 @@ function M.pb_gettag(v)
     return (v) >> 3
 end
 
+---生成`tag`
+---@param tag integer
+---@param type integer
+---@return integer
 function M.pb_pair(tag, type)
     return (tag) << 3 | ((type) & 7)
 end
+
 
 
 
@@ -218,7 +223,7 @@ function M.pb_readvarint64(s)
         s.pos = s.pos + 1
         return 1, ret_val
     end
-    if util.pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
+    if util.pb_len(s) >= 10 or (s._data[s.end_pos - 1] & 0x80) == 0 then
         return pb_readvarint64_fallback(s)
     end
     return pb_readvarint_slow(s)

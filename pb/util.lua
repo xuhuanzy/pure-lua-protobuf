@@ -51,7 +51,7 @@ function M.pb_lslice(s, len)
     return {
         ---@diagnostic disable-next-line: assign-type-mismatch
         _data = s and (
-            type(s) == "string" and tablePack(stringByte(s, 1, len)) or s
+            type(s) == "string" and {stringByte(s, 1, len)} or s
         ),
         pos = s and 1 or nil,
         start = s and 1 or nil,

@@ -1,5 +1,7 @@
-
 local pb_len = require("pb.util").pb_len
+
+local tableInsert = table.insert
+
 ---@class Protobuf.BytesOperation
 local M = {}
 
@@ -82,34 +84,17 @@ local function pb_addfixed64(b, n)
     return 8
 end
 
---[[ PB_API size_t pb_addslice(pb_Buffer *b, pb_Slice s) {
-    size_t len = pb_len(s);
-    char *buff = pb_prepbuffsize(b, len);
-    if (buff == NULL) return 0;
-    memcpy(buff, s.p, len);
-    pb_addsize(b, len);
-    return len;
-} ]]
 ---@param b Protobuf.Char[]
 ---@param s pb_Slice
 ---@return integer
 local function pb_addslice(b, s)
     local len = pb_len(s)
-    local writeIndex = #b + 1
+    local writeIndex = #b
     for i = 1, len do
         b[writeIndex + i] = s._data[s.pos + i - 1]
     end
     return len
 end
-
-
---[[ PB_API size_t pb_addbytes(pb_Buffer *b, pb_Slice s) {
-    size_t ret, len = pb_len(s);
-    if (pb_prepbuffsize(b, len + 5) == NULL) return 0;
-    ret = pb_addvarint32(b, (uint32_t) len);
-    return ret + pb_addslice(b, s);
-}
- ]]
 
 ---@param b Protobuf.Char[]
 ---@param s pb_Slice
@@ -120,7 +105,56 @@ local function pb_addbytes(b, s)
     return ret + pb_addslice(b, s)
 end
 
+---@param targetCharArray Protobuf.Char[] 缓冲区
+---@param beforeLength integer 前面的有效字节长度(包含预分配的长度)
+---@param prealloc integer 预分配长度
+---@return integer @返回`写入的长度` + `剩余有效字节的长度`
+local function pb_addlength(targetCharArray, beforeLength, prealloc)
+    local curLength = #targetCharArray
+    if curLength < beforeLength then
+        return 0
+    end
+    ---@type Protobuf.Char[]
+    local newBuff = {}
+    local ml = pb_write64(newBuff, curLength - beforeLength)
+    assert(ml >= prealloc) -- 预分配长度必须小于等于ml
+    -- 先替换预分配的内容
+    local count = 1
+    for _ = 1, prealloc do
+        targetCharArray[beforeLength - (count - 1)] = newBuff[count]
+        count = count + 1
+    end
+    -- 再插入剩余的内容
+    local insertIndexCount = 1
+    for i = count, ml do
+        tableInsert(targetCharArray, beforeLength + insertIndexCount, newBuff[i])
+        insertIndexCount = insertIndexCount + 1
+    end
 
+    --[[
+     -- 插入位置, 未 + 1
+    local insertIndex = beforeLength - prealloc
+    -- 插入到目标缓冲区
+    for i = 1, ml do
+        tableInsert(targetCharArray, insertIndex + i, newBuff[i])
+    end
+    ]]
+    -- `curLength - beforeLength`: 剩余的有效字节长度
+    return ml + (curLength - beforeLength)
+end
+
+
+---@param targetCharArray Protobuf.Char[] 缓冲区
+---@param beforeLength integer 前面的有效字节长度
+---@param prealloc integer 预分配长度
+---@return integer @返回`写入的长度` + `剩余有效字节的长度`
+local function lpb_addlength(targetCharArray, beforeLength, prealloc)
+    local wlen = pb_addlength(targetCharArray, beforeLength, prealloc)
+    if wlen == 0 or wlen == nil then
+        error("encode bytes fail")
+    end
+    return wlen
+end
 
 --#endregion
 
@@ -142,6 +176,7 @@ M.pb_addfixed32 = pb_addfixed32
 M.pb_addfixed64 = pb_addfixed64
 M.pb_addslice = pb_addslice
 M.pb_addbytes = pb_addbytes
+M.lpb_addlength = lpb_addlength
 
 --#endregion
 return M

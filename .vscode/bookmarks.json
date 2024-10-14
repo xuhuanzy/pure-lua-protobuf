@@ -4,12 +4,12 @@
 			"path": "pb/encode.lua",
 			"bookmarks": [
 				{
-					"line": 50,
+					"line": 51,
 					"column": 0,
 					"label": ""
 				},
 				{
-					"line": 65,
+					"line": 66,
 					"column": 0,
 					"label": ""
 				}
@@ -39,12 +39,22 @@
 			"path": "pb/BytesOperation.lua",
 			"bookmarks": [
 				{
-					"line": 5,
+					"line": 8,
 					"column": 0,
 					"label": ""
 				},
 				{
-					"line": 128,
+					"line": 165,
+					"column": 0,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "pb/protoOut.lua",
+			"bookmarks": [
+				{
+					"line": 1022,
 					"column": 0,
 					"label": ""
 				}
