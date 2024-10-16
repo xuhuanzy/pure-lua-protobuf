@@ -26,6 +26,13 @@ local PB_Tsint32 = ConstantDefine.pb_FieldType.PB_Tsint32
 local PB_Tsint64 = ConstantDefine.pb_FieldType.PB_Tsint64
 local PB_Tgroup = ConstantDefine.pb_FieldType.PB_Tgroup
 
+local PB_TBYTES = ConstantDefine.pb_WireType.PB_TBYTES
+local PB_TVARINT = ConstantDefine.pb_WireType.PB_TVARINT
+local PB_T64BIT = ConstantDefine.pb_WireType.PB_T64BIT
+local PB_T32BIT = ConstantDefine.pb_WireType.PB_T32BIT
+local PB_TGSTART = ConstantDefine.pb_WireType.PB_TGSTART
+local PB_TGEND = ConstantDefine.pb_WireType.PB_TGEND
+local PB_TWIRECOUNT = ConstantDefine.pb_WireType.PB_TWIRECOUNT
 
 
 -- protobuf 工具类
@@ -65,6 +72,13 @@ function M.pb_len(s)
     return s.end_pos - s.pos
 end
 
+
+---@param s pb_Slice
+---@return integer
+function M.pb_pos(s)
+    return s.pos - s.start
+end
+
 -- 获取字符串
 ---@param s pb_Slice
 ---@return string?
@@ -90,7 +104,50 @@ function M.lpb_toslice(value)
     return M.pb_slice(nil)
 end
 
+-- 将应用层数据类型映射到`WireType`
+---@param type integer
+---@return integer
+function M.pb_wtypebytype(type)
+    if type == PB_Tdouble then
+        return PB_T64BIT
+    elseif type == PB_Tfloat then
+        return PB_T32BIT
+    elseif type == PB_Tint64 then
+        return PB_TVARINT
+    elseif type == PB_Tuint64 then
+        return PB_TVARINT
+    elseif type == PB_Tint32 then
+        return PB_TVARINT
+    elseif type == PB_Tfixed64 then
+        return PB_T64BIT
+    elseif type == PB_Tfixed32 then
+        return PB_T32BIT
+    elseif type == PB_Tbool then
+        return PB_TVARINT
+    elseif type == PB_Tstring then
+        return PB_TBYTES
+    elseif type == PB_Tmessage then
+        return PB_TBYTES
+    elseif type == PB_Tbytes then
+        return PB_TBYTES
+    elseif type == PB_Tuint32 then
+        return PB_TVARINT
+    elseif type == PB_Tenum then
+        return PB_TVARINT
+    elseif type == PB_Tsfixed32 then
+        return PB_T32BIT
+    elseif type == PB_Tsfixed64 then
+        return PB_T64BIT
+    elseif type == PB_Tsint32 then
+        return PB_TVARINT
+    elseif type == PB_Tsint64 then
+        return PB_TVARINT
+    else
+        return PB_TWIRECOUNT
+    end
+end
 
+-- 获取基础类型名称
 ---@param type integer
 ---@return string
 function M.pb_typename(type)
@@ -143,6 +200,27 @@ function M.lpb_expected(type)
         return "number/'#number'"
     elseif type == PB_Tbytes or type == PB_Tstring or type == PB_Tmessage then
         return "string"
+    else
+        return "unknown"
+    end
+end
+
+-- 获取`WireType`的名称
+---@param wiretype integer
+---@return string
+function M.pb_wtypename(wiretype)
+    if wiretype == PB_TVARINT then
+        return "varint"
+    elseif wiretype == PB_T64BIT then
+        return "64bit"
+    elseif wiretype == PB_TBYTES then
+        return "bytes"
+    elseif wiretype == PB_TGSTART then
+        return "gstart"
+    elseif wiretype == PB_TGEND then
+        return "gend"
+    elseif wiretype == PB_T32BIT then
+        return "32bit"
     else
         return "unknown"
     end

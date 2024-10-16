@@ -1,24 +1,25 @@
 ---@class Export.Protobuf.State
 local M = {}
 
+
 ---@class lpb_State 全局状态, 允许配置
 ---@field state pb_State
 ---@field local_state pb_State
 ---@field cache pb_Cache
----@field array_type Protobuf.Type
----@field map_type Protobuf.Type
----@field defs_index integer
+---@field array_type Protobuf.Type 数组类型
+---@field map_type Protobuf.Type 映射类型
+---@field defs_index integer 
 ---@field enc_hooks_index integer
 ---@field dec_hooks_index integer
----@field use_dec_hooks boolean
----@field use_enc_hooks boolean
----@field enum_as_value boolean
----@field encode_mode integer
----@field int64_mode integer
----@field encode_default_values boolean
----@field decode_default_array boolean
----@field decode_default_message boolean
----@field encode_order boolean
+---@field use_dec_hooks boolean 使用解码钩子
+---@field use_enc_hooks boolean 使用编码钩子
+---@field enum_as_value boolean 解码枚举时, `false`设置值为枚举名, `true`设置为枚举值数字
+---@field encode_mode Protobuf.EncodeMode 编码模式
+---@field int64_mode Protobuf.Int64Mode 64位整数模式
+---@field encode_default_values boolean 默认值也参与编码
+---@field decode_default_array boolean 对于数组，将空值解码为空表或`nil`(默认为`nil`)
+---@field decode_default_message boolean 将空子消息解析成默认值表
+---@field encode_order boolean 编码顺序
 
 
 ---@type lpb_State 当前的状态, 允许切换
@@ -32,7 +33,9 @@ M.GlobalState = nil
 function M.lpb_lstate()
     if not CurrentState then
         ---@diagnostic disable-next-line: missing-fields
-        CurrentState = {}
+        CurrentState = {
+            encode_mode = 0,
+        }
         ---@diagnostic disable-next-line: missing-fields
         CurrentState.array_type = {
             is_dead = true,
@@ -63,7 +66,6 @@ function M.lpb_lstate()
     return CurrentState
 end
 
-
 -- 从数据库搜索类型
 ---@param state pb_State
 ---@param tname pb_Name
@@ -79,7 +81,7 @@ function M.pb_type(state, tname)
     return nil
 end
 
-
+-- 从类型中搜索字段
 ---@param protobufType Protobuf.Type
 ---@param number integer
 ---@return Protobuf.Field?
@@ -90,14 +92,6 @@ function M.pb_field(protobufType, number)
     return protobufType.field_tags[number]
 end
 
---[[ 
-PB_API const pb_Field *pb_fname(const pb_Type *t, const pb_Name *name) {
-    pb_FieldEntry *fe = NULL;
-    if (t != NULL && name != NULL)
-        fe = (pb_FieldEntry *) pb_gettable(&t->field_names, (pb_Key) name);
-    return fe ? fe->value : NULL;
-} ]]
-
 ---@param protobufType Protobuf.Type
 ---@param name pb_Name?
 ---@return Protobuf.Field?
@@ -107,6 +101,5 @@ function M.pb_fname(protobufType, name)
     end
     return protobufType.field_names[name]
 end
-
 
 return M

@@ -10,7 +10,7 @@ local meta = tool.meta
 ---@field basename string
 ---@field field_sort Protobuf.Field[]
 ---@field field_tags Protobuf.Field[]
----@field field_names Protobuf.Field[]
+---@field field_names {[string]: Protobuf.Field} 
 ---@field oneof_index Protobuf.OneofEntry[]
 ---@field oneof_count integer # extra field count from oneof entries
 ---@field oneof_field integer  #  extra field in oneof declarations

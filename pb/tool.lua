@@ -1,8 +1,12 @@
+local type = type
+local stringPack = string.pack
+local stringUnpack = string.unpack
+
+
 -- 工具类, 不依赖 protobuf 的定义
 ---@class Export.Protobuf.Tool
 local Tool = {}
 
-local type = type
 
 -- 定义一个类(简单定义)
 ---@generic T: string
@@ -30,16 +34,28 @@ function Tool.defaultTable(t, k, def)
     return v
 end
 
-
 --#region 类型检查
 
-
-function Tool.argcheck(cond, fmt, ...)
+---检查参数
+---@param cond boolean 条件
+---@param fmt string 格式化字符串
+---@param ... any 参数
+local function argcheck(cond, fmt, ...)
     if not cond then
         error(string.format(fmt, ...))
     end
 end
+Tool.argcheck = argcheck
 
+---@param field Protobuf.Field
+---@param data any
+function Tool.checkTable(field, data)
+    argcheck(
+        type(data) == "table",
+        "table expected at field '%s', got %s",
+        field.name, type(data)
+    )
+end
 
 --#endregion
 
@@ -49,9 +65,9 @@ end
 ---@param n number
 ---@return integer
 function Tool.toInt32(n)
-    n = n & 0xFFFFFFFF  -- 保留低 32 位
+    n = n & 0xFFFFFFFF         -- 保留低 32 位
     if n >= 0x80000000 then
-        return n - 0x100000000  -- 处理负数的情况
+        return n - 0x100000000 -- 处理负数的情况
     else
         return n
     end
@@ -73,10 +89,47 @@ function Tool.pb_encode_sint32(value)
     return ((value << 1) ~ -((value < 0) and 1 or 0)) & 0xFFFFFFFF
 end
 
+-- ZigZag 解码
+---@param value integer
+---@return integer
+function Tool.pb_decode_sint32(value)
+    return (value >> 1) ~ -(value & 1) & 0xFFFFFFFF
+end
+
+-- ZigZag 编码
 ---@param value integer
 ---@return integer
 function Tool.pb_encode_sint64(value)
     return ((value << 1) ~ -((value < 0) and 1 or 0))
+end
+
+-- ZigZag 解码
+---@param value integer
+---@return integer
+function Tool.pb_decode_sint64(value)
+    return (value >> 1) ~ -(value & 1)
+end
+
+function Tool.pb_encode_double(value)
+    return stringUnpack("I8", stringPack("d", value))
+end
+
+---@param value integer
+---@return number
+function Tool.pb_decode_double(value)
+    ---@diagnostic disable-next-line: redundant-return-value
+    return stringUnpack("d", stringPack("I8", value))
+end
+
+function Tool.pb_encode_float(value)
+    return stringUnpack("I4", stringPack("f", value))
+end
+
+---@param value integer
+---@return number
+function Tool.pb_decode_float(value)
+    ---@diagnostic disable-next-line: redundant-return-value
+    return stringUnpack("f", stringPack("I4", value))
 end
 
 
@@ -185,7 +238,7 @@ function Tool.lpb_tointegerx(s)
         return 0, false
     end
     -- 返回结果，如果是负数则返回相应的负值
-    return neg and (~v) +1 or v, true
+    return neg and (~v) + 1 or v, true
 end
 
 --#endregion

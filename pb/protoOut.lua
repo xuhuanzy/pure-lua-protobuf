@@ -1202,6 +1202,16 @@ do
         return hex_string
     end
 
+    -- 转为byte 输出
+    function Parser.toBytesDump(data)
+        local byte_array = { string.byte(data, 1, -1) }
+        local hex_string = ""
+        for i = 1, #byte_array do
+            hex_string = hex_string .. byte_array[i] .. " "
+        end
+        return hex_string
+    end
+
     function Parser:compile(s, name)
         if self == Parser then self = Parser.new() end
         local set = do_compile(self, self.parse, self, s, name)

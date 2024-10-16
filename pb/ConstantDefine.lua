@@ -1,3 +1,6 @@
+---@class Protobuf.ConstantDefine
+local M = {}
+
 -- 定义一个包含 Wire Type 的表
 local PB_WIRE_TYPES = {
     { id = "VARINT", name = "varint", fmt = 'v' },
@@ -8,6 +11,7 @@ local PB_WIRE_TYPES = {
     { id = "32BIT",  name = "32bit",  fmt = 'd' }
 }
 
+-- 用于描述字段在字节流中的编码类型
 ---@class pb_WireType
 ---@field PB_TVARINT integer
 ---@field PB_T64BIT integer
@@ -48,7 +52,7 @@ local PB_TYPES = {
     { name = "sint32",   type = "sint32",   fmt = 'j' },
     { name = "sint64",   type = "sint64",   fmt = 'J' }
 }
-
+-- 应用层数据类型, 表示消息中每个字段的逻辑数据类型, 会映射到`WireType`
 ---@class pb_FieldType
 ---@field PB_TNONE integer
 ---@field PB_Tdouble integer
@@ -84,10 +88,53 @@ do
 end
 
 
----@class Protobuf.ConstantDefine
-return {
-    pb_WireType = pb_WireType,
-    pb_FieldType = pb_FieldType,
-    PB_OK = 0,
-    PB_ERROR = 1,
+-- 编码模式
+---@enum Protobuf.EncodeMode
+local EncodeMode = {
+    -- 默认值, 会自动判断是否使用默认字段. </br>
+    -- 对于`proto3`, 默认复制默认值到解码目标表中来, 对于其他则忽略默认值设置
+    LPB_DEFDEF = 0,
+    -- 将默认值表复制到解码目标表中来
+    LPB_COPYDEF = 1,
+    -- 将默认值表作为解码目标表的元表使用
+    LPB_METADEF = 2,
+    -- 忽略默认值
+    LPB_NODEF = 3,
 }
+
+---@enum Protobuf.DefFlags
+local DefFlags = {
+    -- 使用字段
+    USE_FIELD = 1,
+    -- 使用重复字段
+    USE_REPEAT = 2,
+    -- 使用消息类型
+    USE_MESSAGE = 4,
+}
+
+-- 64位整数模式
+---@enum Protobuf.Int64Mode
+local Int64Mode = {
+    -- 如果值的大小小于`uint32`允许的最大值，则存储整数，否则存储Lua浮点数类型或者64位整数.
+    LPB_NUMBER = 0,
+    -- 同`LPB_NUMBER`, 但返回一个前缀"#"的字符串以避免精度损失
+    LPB_STRING = 1,
+    -- 同`LPB_NUMBER`, 但返回一个前缀"#"+16进制的字符串
+    LPB_HEXSTRING = 2,
+}
+
+M.INT_MIN = (-2147483647 - 1)
+M.UINT_MAX = 0xffffffff
+M.PB_MAX_SIZET = 0xFFFFFFFF - 100
+
+M.pb_WireType = pb_WireType
+M.pb_FieldType = pb_FieldType
+M.EncodeMode = EncodeMode
+M.DefFlags = DefFlags
+M.Int64Mode = Int64Mode
+M.PB_OK = 0
+M.PB_ERROR = 1
+
+
+
+return M

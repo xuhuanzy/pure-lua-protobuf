@@ -1,6 +1,12 @@
 local decode = require "pb.decode"
 local ConstantDefine = require "pb.ConstantDefine"
 
+local BytesOperation = require("pb.BytesOperation")
+local pb_pair = BytesOperation.pb_pair
+local pb_readvarint32 = BytesOperation.pb_readvarint32
+local pb_skipvalue = BytesOperation.pb_skipvalue
+local pb_readbytes = BytesOperation.pb_readbytes
+
 
 local PB_OK = ConstantDefine.PB_OK
 local PB_ERROR = ConstantDefine.PB_ERROR
@@ -107,7 +113,7 @@ end
 ---@param pv pb_Slice
 ---@return integer
 local function pbL_readbytes(L, pv)
-    local len = decode.pb_readbytes(L.s, pv)
+    local len = pb_readbytes(L.s, pv)
     if len == 0 then
         return PB_ERROR
     end
@@ -118,7 +124,7 @@ end
 ---@return integer @是否成功
 ---@return integer? @读取到的值
 local function pbL_readint32(L)
-    local len, v = decode.pb_readvarint32(L.s)
+    local len, v = pb_readvarint32(L.s)
     if len == 0 then
         return PB_ERROR, nil
     end
@@ -162,14 +168,14 @@ function M.pbL_FieldOptions(L, info)
     local s = {}
     assert(pbL_beginmsg(L, s) == PB_OK)
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(2, PB_TVARINT) == tag then -- bool packed
+        if pb_pair(2, PB_TVARINT) == tag then -- bool packed
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.packed = v ~= 0
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
     pbL_endmsg(L, s)
@@ -189,37 +195,37 @@ function M.pbL_FieldDescriptorProto(L, info)
     info.packed = nil
 
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(1, PB_TBYTES) == tag then
+        if pb_pair(1, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.name) == PB_OK)
-        elseif decode.pb_pair(3, PB_TVARINT) == tag then
+        elseif pb_pair(3, PB_TVARINT) == tag then
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.number = v
-        elseif decode.pb_pair(4, PB_TVARINT) == tag then
+        elseif pb_pair(4, PB_TVARINT) == tag then
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.label = v
-        elseif decode.pb_pair(5, PB_TVARINT) == tag then
+        elseif pb_pair(5, PB_TVARINT) == tag then
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.type = v
-        elseif decode.pb_pair(6, PB_TBYTES) == tag then
+        elseif pb_pair(6, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.type_name) == PB_OK)
-        elseif decode.pb_pair(2, PB_TBYTES) == tag then
+        elseif pb_pair(2, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.extendee) == PB_OK)
-        elseif decode.pb_pair(7, PB_TBYTES) == tag then
+        elseif pb_pair(7, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.default_value) == PB_OK)
-        elseif decode.pb_pair(8, PB_TBYTES) == tag then
+        elseif pb_pair(8, PB_TBYTES) == tag then
             -- 输出剩余长度
             assert(M.pbL_FieldOptions(L, info) == PB_OK)
-        elseif decode.pb_pair(9, PB_TVARINT) == tag then
+        elseif pb_pair(9, PB_TVARINT) == tag then
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.oneof_index = v
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -239,16 +245,16 @@ local function pbL_EnumValueDescriptorProto(L, info)
     assert(pbL_beginmsg(L, s) == PB_OK)
 
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(1, PB_TBYTES) == tag then
+        if pb_pair(1, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.name) == PB_OK)
-        elseif decode.pb_pair(2, PB_TVARINT) == tag then -- int32 number
+        elseif pb_pair(2, PB_TVARINT) == tag then -- int32 number
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.number = v
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -268,14 +274,14 @@ function M.pbL_EnumDescriptorProto(L, info)
     assert(pbL_beginmsg(L, s) == PB_OK)
 
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(1, PB_TBYTES) == tag then
+        if pb_pair(1, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.name) == PB_OK)
-        elseif decode.pb_pair(2, PB_TBYTES) == tag then -- EnumValueDescriptorProto value
+        elseif pb_pair(2, PB_TBYTES) == tag then -- EnumValueDescriptorProto value
             assert(pbL_EnumValueDescriptorProto(L, pbL_add(info.value)) == PB_OK)
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -295,14 +301,14 @@ function M.pbL_MessageOptions(L, info)
     assert(pbL_beginmsg(L, s) == PB_OK)
 
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(7, PB_TVARINT) == tag then
+        if pb_pair(7, PB_TVARINT) == tag then
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.is_map = v ~= 0
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -322,12 +328,12 @@ function M.pbL_OneofDescriptorProto(L, info)
     assert(pbL_beginmsg(L, s) == PB_OK)
 
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(1, PB_TBYTES) == tag then
+        if pb_pair(1, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, pbL_add(info.oneof_decl)) == PB_OK)
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -346,24 +352,24 @@ function M.pbL_DescriptorProto(L, info)
     try_init_pbL_TypeInfo(info)
     assert(pbL_beginmsg(L, s) == PB_OK)
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(1, PB_TBYTES) == tag then     -- string name
+        if pb_pair(1, PB_TBYTES) == tag then     -- string name
             assert(pbL_readbytes(L, info.name) == PB_OK)
-        elseif decode.pb_pair(2, PB_TBYTES) == tag then -- FieldDescriptorProto field
+        elseif pb_pair(2, PB_TBYTES) == tag then -- FieldDescriptorProto field
             assert(M.pbL_FieldDescriptorProto(L, pbL_add(info.field)) == PB_OK)
-        elseif decode.pb_pair(6, PB_TBYTES) == tag then -- FieldDescriptorProto extension
+        elseif pb_pair(6, PB_TBYTES) == tag then -- FieldDescriptorProto extension
             assert(M.pbL_FieldDescriptorProto(L, pbL_add(info.extension)) == PB_OK)
-        elseif decode.pb_pair(3, PB_TBYTES) == tag then -- DescriptorProto nested_type
+        elseif pb_pair(3, PB_TBYTES) == tag then -- DescriptorProto nested_type
             assert(M.pbL_DescriptorProto(L, pbL_add(info.nested_type)) == PB_OK)
-        elseif decode.pb_pair(4, PB_TBYTES) == tag then -- EnumDescriptorProto enum_type
+        elseif pb_pair(4, PB_TBYTES) == tag then -- EnumDescriptorProto enum_type
             assert(M.pbL_EnumDescriptorProto(L, pbL_add(info.enum_type)) == PB_OK)
-        elseif decode.pb_pair(8, PB_TBYTES) == tag then -- OneofDescriptorProto oneof_decl
+        elseif pb_pair(8, PB_TBYTES) == tag then -- OneofDescriptorProto oneof_decl
             assert(M.pbL_OneofDescriptorProto(L, info) == PB_OK)
-        elseif decode.pb_pair(7, PB_TBYTES) == tag then -- MessageOptions options
+        elseif pb_pair(7, PB_TBYTES) == tag then -- MessageOptions options
             assert(M.pbL_MessageOptions(L, info) == PB_OK)
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
     pbL_endmsg(L, s)
@@ -381,20 +387,20 @@ function M.pbL_FileDescriptorProto(L, info)
     try_init_pbL_FileInfo(info)
     assert(pbL_beginmsg(L, s) == PB_OK)
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(2, PB_TBYTES) == tag then
+        if pb_pair(2, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.package) == PB_OK)
-        elseif decode.pb_pair(4, PB_TBYTES) == tag then
+        elseif pb_pair(4, PB_TBYTES) == tag then
             assert(M.pbL_DescriptorProto(L, pbL_add(info.message_type)) == PB_OK)
-        elseif decode.pb_pair(5, PB_TBYTES) == tag then
+        elseif pb_pair(5, PB_TBYTES) == tag then
             assert(M.pbL_EnumDescriptorProto(L, pbL_add(info.enum_type)) == PB_OK)
-        elseif decode.pb_pair(7, PB_TBYTES) == tag then
+        elseif pb_pair(7, PB_TBYTES) == tag then
             assert(M.pbL_FieldDescriptorProto(L, pbL_add(info.extension)) == PB_OK)
-        elseif decode.pb_pair(12, PB_TBYTES) == tag then
+        elseif pb_pair(12, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.syntax) == PB_OK)
         else
-            if decode.pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
     pbL_endmsg(L, s)
@@ -406,12 +412,12 @@ end
 ---@return integer
 function M.pbL_FileDescriptorSet(L, files)
     while true do
-        local len, tag = decode.pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
-        if decode.pb_pair(1, PB_TBYTES) == tag then
+        if pb_pair(1, PB_TBYTES) == tag then
             assert(M.pbL_FileDescriptorProto(L, pbL_add(files)) == PB_OK)
         else
-            assert(decode.pb_skipvalue(L.s, tag) == PB_OK)
+            assert(pb_skipvalue(L.s, tag) == PB_OK)
         end
     end
     return PB_OK

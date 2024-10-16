@@ -1,25 +1,32 @@
 --#region 导入
 
 local State = require("pb.state")
-local decode = require("pb.decode")
-local util = require("pb.util")
 
 local pb_name = require("pb.name").pb_name
 local Name_getName = require("pb.name").getName
 
 local argcheck = require("pb.tool").argcheck
+local checkTable = require("pb.tool").checkTable
 local pb_encode_sint32 = require("pb.tool").pb_encode_sint32
 local expandsig32To64 = require("pb.tool").expandsig32To64
 local pb_encode_sint64 = require("pb.tool").pb_encode_sint64
 local lpb_tointegerx = require("pb.tool").lpb_tointegerx
-
+local pb_encode_double = require("pb.tool").pb_encode_double
+local pb_encode_float = require("pb.tool").pb_encode_float
 local BytesOperation = require("pb.BytesOperation")
 local pb_addvarint32 = BytesOperation.pb_addvarint32
 local pb_addvarint64 = BytesOperation.pb_addvarint64
+local pb_pair = BytesOperation.pb_pair
+
+local util = require("pb.util")
+local pb_wtypebytype = util.pb_wtypebytype
+
+local lpb_type = require("pb.search").lpb_type
 
 
 local ConstantDefine = require "pb.ConstantDefine"
 local PB_TBYTES = ConstantDefine.pb_WireType.PB_TBYTES
+
 local PB_Tdouble = ConstantDefine.pb_FieldType.PB_Tdouble
 local PB_Tfloat = ConstantDefine.pb_FieldType.PB_Tfloat
 local PB_Tint64 = ConstantDefine.pb_FieldType.PB_Tint64
@@ -43,6 +50,12 @@ local PB_Tgroup = ConstantDefine.pb_FieldType.PB_Tgroup
 
 local tableInsert = table.insert
 local tableRemove = table.remove
+local ipairs = ipairs
+local pairs = pairs
+local error = error
+local assert = assert
+local type = type
+local tonumber = tonumber
 
 --#endregion
 
@@ -55,6 +68,7 @@ local M = {}
 ---@field LS lpb_State
 ---@field b Protobuf.Char[]
 ---@field s pb_Slice
+---@field saveTable table 保存解码后的数据
 
 
 
@@ -68,41 +82,6 @@ local encode
 
 
 --#endregion
-
----@param field Protobuf.Field
----@param data any
-local function checkTable(field, data)
-    argcheck(
-        type(data) == "table",
-        "table expected at field '%s', got %s",
-        field.name, type(data)
-    )
-end
-
--- 搜索类型
----@param LS lpb_State
----@param s pb_Slice
----@return Protobuf.Type?
-local function lpb_type(LS, s)
-    local t
-    -- 0: `\0`   46: '.'
-    if s.pos == nil or s._data[1] == 0 or s._data[1] == 46 then
-        local nameEntry = pb_name(LS.state, s)
-        if nameEntry then
-            t = State.pb_type(LS.state, nameEntry.name)
-        end
-    else
-        local copy = util.sliceCopy(s)
-        -- `46` 等价于`string.byte(".")`
-        tableInsert(copy._data, 1, 46)
-        copy.end_pos = copy.end_pos + 1
-        local nameEntry = pb_name(LS.state, copy)
-        if nameEntry then
-            t = State.pb_type(LS.state, nameEntry.name)
-        end
-    end
-    return t
-end
 
 
 
@@ -123,14 +102,14 @@ function M.lpb_addtype(env, type, value, exist)
     elseif type == PB_Tdouble then
         receivedValue = tonumber(value)
         if receivedValue then
-            len = BytesOperation.pb_addfixed64(b, receivedValue)
+            len = BytesOperation.pb_addfixed64(b, pb_encode_double(receivedValue))
             hasResult = true
             hasData = receivedValue ~= 0.0
         end
     elseif type == PB_Tfloat then
         receivedValue = tonumber(value)
         if receivedValue then
-            len = BytesOperation.pb_addfixed32(b, receivedValue)
+            len = BytesOperation.pb_addfixed32(b, pb_encode_float(receivedValue))
             hasResult = true
             hasData = receivedValue ~= 0.0
         end
@@ -281,10 +260,11 @@ end
 ---@param value any
 ---@param ignoreZero boolean 是否忽略值为零的字段
 local function lpbE_tagfield(env, field, value, ignoreZero)
+    print(field.name, field.number, field.type_id)
     local buffer = env.b
     ---@type Protobuf._TempVar.Exist
     local exist = { false }
-    local tagLength = pb_addvarint32(buffer, decode.pb_pair(field.number, decode.pb_wtypebytype(field.type_id)))
+    local tagLength = pb_addvarint32(buffer, pb_pair(field.number, pb_wtypebytype(field.type_id)))
     -- 编码, 然后返回编码的字节数
     local ignoredLen = lpbE_field(env, field, value, exist)
     -- 不使用默认值, 并且不存在, 并且忽略零值
@@ -314,7 +294,7 @@ local function lpbE_map(env, field, map)
     checkTable(field, map)
     for key, value in pairs(map) do
         -- 写入字段编号与类型
-        pb_addvarint32(env.b, decode.pb_pair(field.number, PB_TBYTES))
+        pb_addvarint32(env.b, pb_pair(field.number, PB_TBYTES))
         -- 写入占位符
         pb_addvarint32(env.b, 0)
         -- 获取已写入长度
@@ -328,34 +308,6 @@ local function lpbE_map(env, field, map)
     end
 end
 
-
---[[ static void lpbE_repeated(lpb_Env *e, const pb_Field *f, int idx) {
-    lua_State *L = e->L;
-    pb_Buffer *b = e->b;
-    int i;
-    lpb_checktable(L, f, idx);
-
-    if (f->packed) {
-        unsigned len, bufflen = pb_bufflen(b);
-        lpb_checkmem(L, pb_addvarint32(b, pb_pair(f->number, PB_TBYTES)));
-        lpb_checkmem(L, pb_addvarint32(b, 0));
-        len = pb_bufflen(b);
-        for (i = 1; lua53_rawgeti(L, idx, i) != LUA_TNIL; ++i) {
-            lpbE_field(e, f, NULL, -1);
-            lua_pop(L, 1);
-        }
-        if (i == 1 && !e->LS->encode_default_values)
-            pb_bufflen(b) = bufflen;
-        else
-            lpb_addlength(L, b, len, 1);
-    } else {
-        for (i = 1; lua53_rawgeti(L, idx, i) != LUA_TNIL; ++i) {
-            lpbE_tagfield(e, f, 0, -1);
-            lua_pop(L, 1);
-        }
-    }
-    lua_pop(L, 1);
-} ]]
 ---@param env lpb_Env
 ---@param field Protobuf.Field
 ---@param data any
@@ -366,7 +318,7 @@ local function lpbE_repeated(env, field, data)
         if #data == 0 and not env.LS.encode_default_values then
             return
         end
-        pb_addvarint32(env.b, decode.pb_pair(field.number, PB_TBYTES))
+        pb_addvarint32(env.b, pb_pair(field.number, PB_TBYTES))
         pb_addvarint32(env.b, 0)
         local len = #env.b
         for _, value in ipairs(data) do
@@ -400,7 +352,7 @@ end
 ---@param protobufType Protobuf.Type
 ---@param data table
 encode = function(env, protobufType, data)
-    for _, field in ipairs(protobufType.field_tags) do
+    for _, field in pairs(protobufType.field_tags) do
         local value = rawget(data, field.name)
         if value then
             lpb_encode_onefield(env, protobufType, value, field)
@@ -423,6 +375,8 @@ function M.encode(type, data)
         b = {},
         ---@diagnostic disable-next-line: missing-fields
         s = {},
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        saveTable = nil
     }
     encode(env, protobufType, data)
     return string.char(table.unpack(env.b))

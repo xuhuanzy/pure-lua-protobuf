@@ -20,28 +20,15 @@ assert(
 )
 local data = {
     name     = "ilse",
-    --    age      = 18,
-    test     = 1,
+    age      = 18,
     contacts = {
         { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-    },
-    contacts2 = {
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-        { name = "alice", phonenumber = 12312341234 },
-    },
-    -- a = function() end,
+        { name = "bob",   phonenumber = 45645674567 }
+    }
 }
-
 local bytes = assert(_pb_encode("Person", data))
+print(protoOut.toHex(bytes))
+
 
 local msgpackPack = require('msgpack.msgpack').pack
 TimerTest("msgpack", "万", function()

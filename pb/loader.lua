@@ -158,7 +158,7 @@ local function pbL_loadType(state, info, L)
     t.is_map = info.is_map
     t.is_proto3 = L.is_proto3
     for i, oneofDecl in ipairs(info.oneof_decl) do
-        local e = t.oneof_index[i]
+        local e = t.oneof_index[i] or {}
         e.name = pb_newname(state, oneofDecl).name
         e.index = i
     end
