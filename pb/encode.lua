@@ -260,7 +260,6 @@ end
 ---@param value any
 ---@param ignoreZero boolean 是否忽略值为零的字段
 local function lpbE_tagfield(env, field, value, ignoreZero)
-    print(field.name, field.number, field.type_id)
     local buffer = env.b
     ---@type Protobuf._TempVar.Exist
     local exist = { false }

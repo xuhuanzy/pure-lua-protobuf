@@ -188,7 +188,7 @@ end
 ---@param flags Protobuf.DefFlags 模式
 ---@param saveTable table 保存到的表
 local function lpb_setdeffields(env, type, flags, saveTable)
-    for index, field in ipairs(type.field_tags) do
+    for _, field in pairs(type.field_tags) do
         local value = nil
         --  决定是否使用 `map_type` 或 `array_type`
         local fetchType = (field.type and field.type.is_map) and env.LS.map_type or env.LS.array_type
@@ -287,10 +287,10 @@ local function lpbD_rawfield(env, field, saveTable)
         if field.type == nil or field.type.is_dead then
             value = nil
         else
-            local newSaveTable = lpb_pushtypetable(env, field.type)
+            value = lpb_pushtypetable(env, field.type)
             local oldSlice = env.s
             env.s = targetSlice
-            value = lpbD_message(env, field.type, newSaveTable)
+            lpbD_message(env, field.type, value)
             env.s = oldSlice
         end
     else
@@ -359,7 +359,7 @@ lpbD_message = function(env, protobufType, saveTable)
             lpbD_repeated(env, field, tag, _newSaveTable)
         else
             local key = field.name
-            if field.oneof_idx then
+            if field.oneof_idx and field.oneof_idx ~= 0 then
                 local oneof_key = protobufType.oneof_index[field.oneof_idx].name
                 rawset(saveTable, oneof_key, key)
             end
@@ -385,8 +385,12 @@ function M.decode(type, data, saveTable)
         LS = globalState,
         b = {},
         s = util.pb_slice(data),
-        saveTable = saveTable or {}
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        saveTable = saveTable
     }
+    if not env.saveTable then
+        env.saveTable = lpb_pushtypetable(env, protobufType)
+    end
     lpbD_message(env, protobufType, env.saveTable)
     return env.saveTable
 end

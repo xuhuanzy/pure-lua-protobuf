@@ -129,7 +129,9 @@ local function pbL_loadField(state, info, L, type)
     assert(f)
     f.default_value = getNewName(state, info.default_value)
     f.type = ft
-    if info.oneof_index then
+    f.oneof_idx = info.oneof_index
+    if f.oneof_idx and f.oneof_idx ~= 0 then
+        print(string.format("pbL_loadField oneof_idx: %d", f.oneof_idx))
         type.oneof_field = type.oneof_field + 1
     end
     f.type_id = info.type
@@ -161,6 +163,7 @@ local function pbL_loadType(state, info, L)
         local e = t.oneof_index[i] or {}
         e.name = pb_newname(state, oneofDecl).name
         e.index = i
+        t.oneof_index[i] = e
     end
     for i, field in ipairs(info.field) do
         pbL_loadField(state, field, L, t)

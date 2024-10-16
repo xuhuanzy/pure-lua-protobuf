@@ -92,7 +92,7 @@ local function try_init_pbL_FieldInfo(_table)
     _table.type_name = _table.type_name or {}
     _table.extendee = _table.extendee or {}
     _table.default_value = _table.default_value or {}
-
+    _table.oneof_index = _table.oneof_index or 0
     return _table
 end
 
@@ -221,9 +221,9 @@ function M.pbL_FieldDescriptorProto(L, info)
             -- 输出剩余长度
             assert(M.pbL_FieldOptions(L, info) == PB_OK)
         elseif pb_pair(9, PB_TVARINT) == tag then
-            local ret, v = pbL_readint32(L)
-            assert(ret == PB_OK) ---@cast v integer
-            info.oneof_index = v
+            local ret, _ = pbL_readint32(L)
+            assert(ret == PB_OK)
+            info.oneof_index = info.oneof_index + 1
         else
             if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
