@@ -20,22 +20,12 @@ local setmetatable = setmetatable
 ---@field count integer
 ---@field hash pb_NameEntry[]
 
----@class pb_CacheSlot
----@field name protobuf.NameValue
----@field hash integer
 
----@class pb_Cache
----@field slots pb_CacheSlot[][] # [PB_CACHE_SIZE][2]
----@field hash integer
 
 ---@class pb_State
 ---@field nametable { [protobuf.NameValue]: protobuf.NameEntry } @名称表, 未使用
 ---@field types { [protobuf.NameValue]: Protobuf.Type } @类型表
----@field typepool pb_Pool @类型池
----@field fieldpool pb_Pool @字段池
 
----@class pb_Pool
----@field obj_size integer
 
 
 ---@class pb_Table

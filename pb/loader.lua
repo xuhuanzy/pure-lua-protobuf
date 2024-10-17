@@ -72,8 +72,6 @@ local function pb_newfield(state, type, tname, number)
     local tf = type.field_tags[number]
     if nf and tf and nf == tf then
         nf.default_value = nil
-        print(string.format("pb_newfield pb_delname: %s number: %d", tname, number))
-        --TODO 删除默认值
         return nf
     end
     local f = ProtobufField.new(tname, type, number)

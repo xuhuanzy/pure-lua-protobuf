@@ -2,9 +2,8 @@ local pb_field = require("pb.state").pb_field
 local pb_fname = require("pb.state").pb_fname
 local pb_type = require("pb.state").pb_type
 local lpb_lstate = require("pb.state").lpb_lstate
+local lpb_type = require("pb.state").lpb_type
 
-
-local lpb_type = require("pb.search").lpb_type
 local argcheck = require("pb.tool").argcheck
 
 
@@ -233,6 +232,7 @@ switchPushDefaultField = {
 ---@param isProto3 boolean 是否为proto3
 ---@return boolean success 是否成功
 ---@return any value 值
+---@nodiscard
 local function lpb_pushdeffield(env, field, isProto3)
     if field == nil then return false end
     return switchPushDefaultField[field.type_id](env, field, isProto3)
@@ -365,7 +365,68 @@ local function lpbD_field(env, field, tag)
     return lpbD_rawfield(env, field)
 end
 
-
+---@param env lpb_Env 环境
+---@param field Protobuf.Field 字段
+---@param saveTable table 数据
+local function lpbD_map(env, field, saveTable)
+    local oldSlice = env.s
+    local len, tag
+    local mask = 0
+    ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
+    local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
+    lpb_readbytes(oldSlice, targetSlice)
+    local success, k, v
+    -- 本循环仅会取出一对键值对
+    while true do
+        len, tag = pb_readvarint32(targetSlice) ---@cast tag integer
+        if len == 0 then break end
+        local n = pb_gettag(tag)
+        if n == 1 or n == 2 then
+            mask = mask | n
+            env.s = targetSlice
+            local value = lpbD_field(
+                env,
+                ---@diagnostic disable-next-line: param-type-mismatch
+                pb_field(field.type, n),
+                tag
+            )
+            env.s = oldSlice
+            if n == 1 then
+                k = value
+            else
+                v = value
+            end
+        end
+    end
+    -- 如果键不存在，则添加默认键
+    if not (mask & 1) then
+        success, k = lpb_pushdeffield(
+            env,
+            ---@diagnostic disable-next-line: param-type-mismatch
+            pb_field(field.type, 1),
+            true
+        )
+        if success then
+            mask = mask | 1
+        end
+    end
+    -- 如果值不存在，则添加默认值
+    if not (mask & 2) then
+        success, v = lpb_pushdeffield(
+            env,
+            ---@diagnostic disable-next-line: param-type-mismatch
+            pb_field(field.type, 2),
+            true
+        )
+        if success then
+            mask = mask | 2
+        end
+    end
+    -- 如果键和值都存在，则添加到表中
+    if mask == 3 then
+        rawset(saveTable, k, v)
+    end
+end
 
 ---@param env lpb_Env 环境
 ---@param field Protobuf.Field 字段
@@ -405,7 +466,8 @@ lpbD_message = function(env, protobufType, saveTable)
         if field == nil then
             pb_skipvalue(s, tag)
         elseif field.type and field.type.is_map then
-            --TODO 实现map解码
+            lpbD_checktype(env, field, tag)
+            lpbD_map(env, field, lpb_fetchtable(field, env.LS.map_type, saveTable))
         elseif field.repeated then
             lpbD_repeated(env, field, tag, lpb_fetchtable(field, env.LS.array_type, saveTable))
         else

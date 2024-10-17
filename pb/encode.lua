@@ -3,6 +3,7 @@
 local lpb_lstate = require("pb.state").lpb_lstate
 local pb_field = require("pb.state").pb_field
 local pb_fname = require("pb.state").pb_fname
+local lpb_type = require("pb.state").lpb_type
 
 local tryGetName = require("pb.names").tryGetName
 
@@ -32,7 +33,6 @@ local pb_typename = require("pb.util").pb_typename
 local lpb_expected = require("pb.util").lpb_expected
 local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
-local lpb_type = require("pb.search").lpb_type
 
 
 local ConstantDefine = require "pb.ConstantDefine"

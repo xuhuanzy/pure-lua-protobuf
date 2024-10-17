@@ -1,3 +1,6 @@
+local tryGetName = require("pb.names").tryGetName
+local getSliceString = require("pb.util").getSliceString
+
 ---@class Export.Protobuf.State
 local M = {}
 
@@ -5,7 +8,6 @@ local M = {}
 ---@class lpb_State 全局状态, 允许配置
 ---@field state pb_State
 ---@field local_state pb_State
----@field cache pb_Cache
 ---@field array_type Protobuf.Type 数组类型
 ---@field map_type Protobuf.Type 映射类型
 ---@field defs_index integer 
@@ -19,7 +21,6 @@ local M = {}
 ---@field encode_default_values boolean 默认值也参与编码
 ---@field decode_default_array boolean 对于数组，将空值解码为空表或`nil`(默认为`nil`)
 ---@field decode_default_message boolean 将空子消息解析成默认值表
----@field encode_order boolean 编码顺序
 
 
 ---@type lpb_State 当前的状态, 允许切换
@@ -48,14 +49,8 @@ function M.lpb_lstate()
         CurrentState.enc_hooks_index = -2 -- LUA_NOREF
         CurrentState.dec_hooks_index = -2 -- LUA_NOREF
         CurrentState.local_state = {
-            ---@diagnostic disable-next-line: missing-fields
             types = {},
-            ---@diagnostic disable-next-line: missing-fields
-            fieldpool = {},
-            ---@diagnostic disable-next-line: missing-fields
             nametable = {},
-            ---@diagnostic disable-next-line: missing-fields
-            typepool = {},
         }
         CurrentState.state = CurrentState.local_state
     end
@@ -76,6 +71,7 @@ function M.pb_type(state, tname)
     end
     return nil
 end
+local pb_type = M.pb_type
 
 -- 从类型中搜索字段
 ---@param protobufType Protobuf.Type
@@ -96,6 +92,25 @@ function M.pb_fname(protobufType, name)
         return nil
     end
     return protobufType.field_names[name]
+end
+
+-- 搜索类型
+---@param LS lpb_State
+---@param s protobuf.Slice
+---@return Protobuf.Type?
+function M.lpb_type(LS, s)
+    -- 0: `\0`   46: '.'
+    if s._data[1] == 46 or s.pos == nil or s._data[1] == 0 then
+        local name = tryGetName(LS.state, s)
+        if name then
+            return pb_type(LS.state, name)
+        end
+    else
+        local name = tryGetName(LS.state, "." .. getSliceString(s))
+        if name then
+            return pb_type(LS.state, name)
+        end
+    end
 end
 
 return M

@@ -9,6 +9,8 @@ local _pb_decode = require("pb.decode").decode
 local LibDeflate = require("msgpack.LibDeflate")
 local LCompressDeflate = LibDeflate.CompressDeflate
 local LDecompressDeflate = LibDeflate.DecompressDeflate
+local Base64Encode = require("msgpack.base64").encode
+local Base64Decode = require("msgpack.base64").decode
 
 assert(protoc:load [[
 syntax = "proto3";
@@ -48,34 +50,53 @@ local data = {
     phone    = "12312341234",
 }
 
+local testCount = "万"
+
 do
     local bytes = assert(_pb_encode("Person", data))
-    TimerTest("pb encode", "万", function()
+    TimerTest("pb encode", testCount, function()
         _pb_encode("Person", data)
     end)
 
-    TimerTest("pb decode", "万", function()
+    TimerTest("pb decode", testCount, function()
         _pb_decode("Person", bytes)
     end)
 
-    TimerTest("pb encode & decode", "万", function()
+    TimerTest("pb encode & decode", testCount, function()
         _pb_decode("Person", _pb_encode("Person", data))
+    end)
+
+    local base64EncodeData = Base64Encode(_pb_encode("Person", data))
+    print(#base64EncodeData, base64EncodeData)
+    TimerTest("pb encode and base64", testCount, function()
+        Base64Encode(_pb_encode("Person", data))
+    end)
+    TimerTest("pb decode and base64", testCount, function()
+        _pb_decode("Person", Base64Decode(base64EncodeData))
     end)
 end
 
 do
-
     local msgpackPack = require('msgpack.msgpack').pack
     local msgpackUnpack = require('msgpack.msgpack').unpack
 
     local bytes = LCompressDeflate(LibDeflate, msgpackPack(data))
-    TimerTest("msgpack encode and compress", "万", function()
+    TimerTest("msgpack encode and compress", testCount, function()
         LCompressDeflate(LibDeflate, msgpackPack(data))
     end)
-    TimerTest("msgpack decode and decompress", "万", function()
+    TimerTest("msgpack decode and decompress", testCount, function()
         msgpackUnpack(LDecompressDeflate(LibDeflate, bytes))
     end)
-    TimerTest("msgpack encode and decode", "万", function()
+    TimerTest("msgpack encode and decode", testCount, function()
         msgpackUnpack(LDecompressDeflate(LibDeflate, LCompressDeflate(LibDeflate, msgpackPack(data))))
+    end)
+
+    local base64EncodeData = Base64Encode(msgpackPack(data))
+    print(#base64EncodeData, base64EncodeData)
+    TimerTest("msgpack encode and base64", testCount, function()
+        Base64Encode(msgpackPack(data))
+    end)
+    TimerTest("msgpack decode and base64", testCount, function()
+        msgpackUnpack(Base64Decode(base64EncodeData))
     end)
 end
