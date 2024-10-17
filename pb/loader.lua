@@ -1,26 +1,24 @@
 local fileDescriptor = require("pb.fileDescriptor")
-local decode = require("pb.decode")
-local PbName = require("pb.name")
-local util = require("pb.util")
-local ConstantDefine = require "pb.ConstantDefine"
-local defaultTable = require "pb.tool".defaultTable
-local BytesOperation = require "pb.BytesOperation"
 
 local State = require("pb.state")
+
+local pb_addslice = require("pb.BytesOperation").pb_addslice
 
 local ProtobufType = require "pb.type".ProtobufType
 local ProtobufField = require "pb.field".ProtobufField
 
-local PB_OK = ConstantDefine.PB_OK
-local PB_ERROR = ConstantDefine.PB_ERROR
+local ConstantDefine = require "pb.ConstantDefine"
 local PB_Tmessage = ConstantDefine.pb_FieldType.PB_Tmessage
 local PB_Tenum = ConstantDefine.pb_FieldType.PB_Tenum
 
-local tableInsert = table.insert
-local pb_newname = PbName.pb_newname
-local getNewName = PbName.getNewName
+local charArrayToString = require("pb.util").charArrayToString
+local pb_slice = require("pb.util").pb_slice
 
-local TestGobalDefine = require "test.TestGobalDefine"
+
+local tryGetName = require("pb.names").tryGetName
+
+local tableInsert = table.insert
+
 
 ---@class pb_Loader
 ---@field s pb_Slice 需要处理的数据
@@ -33,25 +31,25 @@ local M = {}
 
 ---@param state pb_State
 ---@param s pb_Slice
----@param L pb_Loader
+---@param loader pb_Loader
 ---@param isoOut boolean
----@return pb_NameEntry? name 名称
+---@return protobuf.NameValue? name 名称
 ---@return integer curPos 当前位置
-local function pbL_prefixname(state, s, L, isoOut)
-    local curPos = #L.b
+local function pbL_prefixname(state, s, loader, isoOut)
+    local curPos = #loader.b
     -- `46` 等价于`string.byte(".")`
-    L.b[#L.b + 1] = 46
-    BytesOperation.pb_addslice(L.b, s)
+    loader.b[#loader.b + 1] = 46
+    pb_addslice(loader.b, s)
     if not isoOut then
         return nil, curPos
     end
-    return PbName.pb_newname(state, util.pb_lslice(L.b, #L.b)), curPos
+    return tryGetName(state, charArrayToString(loader.b)), curPos
 end
 
 
 
 ---@param state pb_State
----@param tname pb_Name
+---@param tname? protobuf.NameValue
 ---@return Protobuf.Type?
 local function pb_newtype(state, tname)
     if not tname then return nil end
@@ -65,7 +63,7 @@ end
 
 ---@param state pb_State
 ---@param type Protobuf.Type
----@param tname pb_Name
+---@param tname? protobuf.NameValue
 ---@param number integer
 ---@return Protobuf.Field?
 local function pb_newfield(state, type, tname, number)
@@ -92,16 +90,15 @@ end
 ---@param info pbL_EnumInfo
 ---@param L pb_Loader
 local function pbL_loadEnum(state, info, L)
-    local nameEntry, curPos = pbL_prefixname(state, info.name, L, true)
-    ---@cast nameEntry pb_NameEntry
-    assert(nameEntry, "name error")
-    local t = pb_newtype(state, nameEntry.name)
+    local prefixname, curPos = pbL_prefixname(state, info.name, L, true)
+    assert(prefixname, "name error")
+    local t = pb_newtype(state, prefixname)
     assert(t, "newtype error")
     t.is_enum = true
     for i, enumTypeInfo in ipairs(info.value) do
-        local nameEntry = pb_newname(state, enumTypeInfo.name)
-        assert(nameEntry, "nameEntry error")
-        local f = pb_newfield(state, t, nameEntry.name, enumTypeInfo.number)
+        local name = tryGetName(state, enumTypeInfo.name)
+        assert(name, "nameEntry error")
+        pb_newfield(state, t, name, enumTypeInfo.number)
     end
     --删除后面的名称
     for i = curPos + 1, #L.b do
@@ -117,21 +114,20 @@ end
 local function pbL_loadField(state, info, L, type)
     local ft
     if info.type == PB_Tmessage or info.type == PB_Tenum then
-        ft = pb_newtype(state, pb_newname(state, info.type_name).name)
+        ft = pb_newtype(state, tryGetName(state, info.type_name))
     end
     ---@cast ft Protobuf.Type
 
     if not type then
-        type = pb_newtype(state, pb_newname(state, info.extendee).name)
+        type = pb_newtype(state, tryGetName(state, info.extendee))
     end
     ---@cast type Protobuf.Type
-    local f = pb_newfield(state, type, pb_newname(state, info.name).name, info.number)
+    local f = pb_newfield(state, type, tryGetName(state, info.name), info.number)
     assert(f)
-    f.default_value = getNewName(state, info.default_value)
+    f.default_value = tryGetName(state, info.default_value)
     f.type = ft
     f.oneof_idx = info.oneof_index
     if f.oneof_idx and f.oneof_idx ~= 0 then
-        print(string.format("pbL_loadField oneof_idx: %d", f.oneof_idx))
         type.oneof_field = type.oneof_field + 1
     end
     f.type_id = info.type
@@ -153,28 +149,28 @@ end
 ---@param info pbL_TypeInfo
 ---@param L pb_Loader
 local function pbL_loadType(state, info, L)
-    local nameEntry, curPos = pbL_prefixname(state, info.name, L, true)
-    ---@cast nameEntry pb_NameEntry
-    local t = pb_newtype(state, nameEntry.name)
+    local prefixname, curPos = pbL_prefixname(state, info.name, L, true)
+    local t = pb_newtype(state, prefixname)
     assert(t)
     t.is_map = info.is_map
     t.is_proto3 = L.is_proto3
     for i, oneofDecl in ipairs(info.oneof_decl) do
         local e = t.oneof_index[i] or {}
-        e.name = pb_newname(state, oneofDecl).name
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        e.name = tryGetName(state, oneofDecl)
         e.index = i
         t.oneof_index[i] = e
     end
-    for i, field in ipairs(info.field) do
+    for _, field in ipairs(info.field) do
         pbL_loadField(state, field, L, t)
     end
-    for i, extension in ipairs(info.extension) do
+    for _, extension in ipairs(info.extension) do
         pbL_loadField(state, extension, L, nil)
     end
-    for i, enumTypeInfo in ipairs(info.enum_type) do
+    for _, enumTypeInfo in ipairs(info.enum_type) do
         pbL_loadEnum(state, enumTypeInfo, L)
     end
-    for i, nestedTypeInfo in ipairs(info.nested_type) do
+    for _, nestedTypeInfo in ipairs(info.nested_type) do
         pbL_loadType(state, nestedTypeInfo, L)
     end
     t.oneof_count = #info.oneof_decl
@@ -188,15 +184,15 @@ end
 ---@param info pbL_FileInfo[]
 ---@param L pb_Loader
 local function loadDescriptorFiles(state, info, L)
-    local syntax = PbName.pb_newname(state, util.pb_slice("proto3"))
+    local proto3Name = tryGetName(state, "proto3")
     local _, curPos = 0, 0
-    assert(syntax, "syntax error")
-    for i, fileInfo in ipairs(info) do
+    assert(proto3Name, "syntax error")
+    for _, fileInfo in ipairs(info) do
         if fileInfo.package.pos then
             _, curPos = pbL_prefixname(state, fileInfo.package, L, false)
         end
-        local syntaxName = PbName.pb_name(state, fileInfo.syntax)
-        L.is_proto3 = (syntaxName and syntaxName.name == syntax.name or false)
+        local syntaxName = tryGetName(state, fileInfo.syntax)
+        L.is_proto3 = (syntaxName and syntaxName == proto3Name or false)
         for j, enumTypeInfo in ipairs(fileInfo.enum_type) do
             pbL_loadEnum(state, enumTypeInfo, L)
         end
@@ -217,7 +213,7 @@ end
 
 ---@param state pb_State
 ---@param s pb_Slice
-function M.pb_load(state, s)
+local function pb_load(state, s)
     ---@type pbL_FileInfo[]
     local files = {}
     ---@type pb_Loader
@@ -235,8 +231,8 @@ end
 ---@return integer @当前数据位置
 function M.Load(data)
     local state = State.lpb_lstate()
-    local s = util.pb_slice(data)
-    M.pb_load(state.local_state, s)
+    local s = pb_slice(data)
+    pb_load(state.local_state, s)
     State.GlobalState = state.local_state
     return true, s.pos - s.start + 1
 end

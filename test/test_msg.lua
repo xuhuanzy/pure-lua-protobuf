@@ -53,6 +53,9 @@ TimerTest("pb decode", "万", function()
     _pb_decode("Person", bytes)
 end)
 
+TimerTest("pb encode & decode", "万", function()
+    _pb_decode("Person", _pb_encode("Person", data))
+end)
 
 
 local msgpackPack = require('msgpack.msgpack').pack
@@ -65,3 +68,8 @@ local msgpackUnpack = require('msgpack.msgpack').unpack
 TimerTest("msgpack decode", "万", function()
     msgpackUnpack(bytes)
 end)
+
+TimerTest("msgpack encode & decode", "万", function()
+    msgpackUnpack(msgpackPack(data))
+end)
+

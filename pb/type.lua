@@ -2,11 +2,11 @@ local tool = require "pb.tool"
 local meta = tool.meta
 
 ---@class Protobuf.OneofEntry
----@field name pb_Name
+---@field name protobuf.NameValue
 ---@field index integer
 
 ---@class Protobuf.Type
----@field name pb_Name
+---@field name protobuf.NameValue
 ---@field basename string
 ---@field field_sort Protobuf.Field[]
 ---@field field_tags Protobuf.Field[]
@@ -34,7 +34,7 @@ local function getBasename(str)
 end
 
 ---@return Protobuf.Type
----@param name pb_Name
+---@param name protobuf.NameValue
 function ProtobufType.new(name)
     ---@type Protobuf.Type
     ---@diagnostic disable-next-line: missing-fields

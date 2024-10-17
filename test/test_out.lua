@@ -46,7 +46,7 @@ local data = {
 -- 将Lua表编码为二进制数据
 local bytes = assert(_pb_encode("Person", data))
 print(protoOut.toHex(bytes))
-print(protoOut.toBytesDump(bytes))
+-- print(protoOut.toBytesDump(bytes))
 
 local decodeData = _pb_decode("Person", bytes)
 print(dump(decodeData))

@@ -7,7 +7,7 @@ local pb_type = State.pb_type
 
 local lpb_type = require("pb.search").lpb_type
 local argcheck = require("pb.tool").argcheck
-local pb_name = require("pb.name").pb_name
+
 
 local BytesOperation = require("pb.BytesOperation")
 local pb_pair = BytesOperation.pb_pair

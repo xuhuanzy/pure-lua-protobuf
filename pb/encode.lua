@@ -2,8 +2,7 @@
 
 local State = require("pb.state")
 
-local pb_name = require("pb.name").pb_name
-local Name_getName = require("pb.name").getName
+local tryGetName = require("pb.names").tryGetName
 
 local argcheck = require("pb.tool").argcheck
 local checkTable = require("pb.tool").checkTable
@@ -205,7 +204,7 @@ local function lpbE_enum(env, field, value, exist)
     end
     ---@cast value any
 
-    local ev = State.pb_fname(field.type, Name_getName(env.LS.state, util.pb_slice(value)))
+    local ev = State.pb_fname(field.type, tryGetName(env.LS.state, value))
     if ev then
         if exist then
             exist[1] = ev.number ~= 0

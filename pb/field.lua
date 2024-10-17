@@ -1,13 +1,18 @@
 local tool = require "pb.tool"
 local meta = tool.meta
----@alias pb_Name string
+
+---@alias protobuf.NameValue string
+
+---@class protobuf.NameEntry
+---@field refcount integer # 引用计数
+---@field name protobuf.NameValue # 名称
 
 ---@class pb_NameEntry
 ---@field next pb_NameEntry
 ---@field hash integer
 ---@field length integer
 ---@field refcount integer
----@field name pb_Name
+---@field name protobuf.NameValue
 
 ---@class pb_NameTable
 ---@field size integer
@@ -15,7 +20,7 @@ local meta = tool.meta
 ---@field hash pb_NameEntry[]
 
 ---@class pb_CacheSlot
----@field name pb_Name
+---@field name protobuf.NameValue
 ---@field hash integer
 
 ---@class pb_Cache
@@ -23,8 +28,8 @@ local meta = tool.meta
 ---@field hash integer
 
 ---@class pb_State
----@field nametable pb_NameTable
----@field types { [pb_Name]: Protobuf.Type }
+---@field nametable { [protobuf.NameValue]: protobuf.NameEntry }
+---@field types { [protobuf.NameValue]: Protobuf.Type }
 ---@field typepool pb_Pool
 ---@field fieldpool pb_Pool
 
@@ -46,9 +51,9 @@ local meta = tool.meta
 
 
 ---@class Protobuf.Field
----@field name pb_Name
+---@field name protobuf.NameValue
 ---@field type Protobuf.Type
----@field default_value? pb_Name
+---@field default_value? protobuf.NameValue
 ---@field number integer
 ---@field sort_index integer
 ---@field oneof_idx integer
@@ -58,7 +63,7 @@ local meta = tool.meta
 ---@field scalar boolean # 是否是`scalar`类型, scalar: 标量
 local ProtobufField = meta("Protobuf.Field")
 
----@param name pb_Name
+---@param name protobuf.NameValue
 ---@param type Protobuf.Type
 ---@param number integer
 ---@return Protobuf.Field

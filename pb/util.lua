@@ -104,6 +104,13 @@ function M.lpb_toslice(value)
     return M.pb_slice(nil)
 end
 
+-- 字节数组转换为`string`
+---@param charArray Protobuf.Char[]
+---@return string
+function M.charArrayToString(charArray)
+    return stringChar(tableUnpack(charArray))
+end
+
 -- 将应用层数据类型映射到`WireType`
 ---@param type integer
 ---@return integer

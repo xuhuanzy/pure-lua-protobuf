@@ -53,11 +53,7 @@ function M.lpb_lstate()
             ---@diagnostic disable-next-line: missing-fields
             fieldpool = {},
             ---@diagnostic disable-next-line: missing-fields
-            nametable = {
-                count = 0,
-                size = 0,
-                hash = {},
-            },
+            nametable = {},
             ---@diagnostic disable-next-line: missing-fields
             typepool = {},
         }
@@ -68,7 +64,7 @@ end
 
 -- 从数据库搜索类型
 ---@param state pb_State
----@param tname pb_Name
+---@param tname protobuf.NameValue
 ---@return Protobuf.Type?
 function M.pb_type(state, tname)
     if not state or not tname then
@@ -93,7 +89,7 @@ function M.pb_field(protobufType, number)
 end
 
 ---@param protobufType Protobuf.Type
----@param name pb_Name?
+---@param name protobuf.NameValue?
 ---@return Protobuf.Field?
 function M.pb_fname(protobufType, name)
     if not protobufType or not name then
