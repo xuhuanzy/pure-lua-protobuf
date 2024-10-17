@@ -53,7 +53,7 @@ local M = {}
 ---@field pos? integer 当前位置
 ---@field start? integer 起始位置
 ---@field end_pos? integer 结束位置
----@field stringValue string? 字符串值缓存. 如果该值不为空, 则其他值不应该发生改变
+---@field nameValue string? 名称缓存, 只会在取名称时缓存该值.
 local ProtobufSlice = meta("protobuf.Slice")
 
 ---@param data? string|protobuf.Char[]
@@ -99,8 +99,8 @@ end
 ---@return string?
 function M.getSliceString(s)
     if not s._data then return nil end
-    s.stringValue = s.stringValue or stringChar(tableUnpack(s._data, s.pos, s.end_pos - 1))
-    return s.stringValue
+    s.nameValue = s.nameValue or stringChar(tableUnpack(s._data, s.pos, s.end_pos - 1))
+    return s.nameValue
 end
 
 ---@param value any

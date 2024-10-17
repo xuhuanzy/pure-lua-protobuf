@@ -29,10 +29,10 @@ local setmetatable = setmetatable
 ---@field hash integer
 
 ---@class pb_State
----@field nametable { [protobuf.NameValue]: protobuf.NameEntry }
----@field types { [protobuf.NameValue]: Protobuf.Type }
----@field typepool pb_Pool
----@field fieldpool pb_Pool
+---@field nametable { [protobuf.NameValue]: protobuf.NameEntry } @名称表, 未使用
+---@field types { [protobuf.NameValue]: Protobuf.Type } @类型表
+---@field typepool pb_Pool @类型池
+---@field fieldpool pb_Pool @字段池
 
 ---@class pb_Pool
 ---@field obj_size integer

@@ -38,22 +38,29 @@ end
 ---@param s protobuf.Slice|string 字符串或切片
 ---@return protobuf.NameValue? @名称
 function Export.tryGetName(state, s)
-    local name
     if type(s) == "string" then
-        name = s
+        return s
     else
         if not s.pos then return nil end
-        name = getSliceString(s) or ""
+        return getSliceString(s) or ""
     end
 
-    local entry = getNameEntry(state, name)
-    if not entry then
-        entry = newName(state, name)
-    end
-    if entry then
-        useName(entry)
-    end
-    return entry and entry.name or nil
+    -- local name
+    -- if type(s) == "string" then
+    --     name = s
+    -- else
+    --     if not s.pos then return nil end
+    --     name = getSliceString(s) or ""
+    -- end
+
+    -- local entry = getNameEntry(state, name)
+    -- if not entry then
+    --     entry = newName(state, name)
+    -- end
+    -- if entry then
+    --     useName(entry)
+    -- end
+    -- return entry and entry.name or nil
 end
 
 
