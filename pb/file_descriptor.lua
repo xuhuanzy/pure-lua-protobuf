@@ -1,5 +1,6 @@
-local decode = require "pb.decode"
 local ConstantDefine = require "pb.ConstantDefine"
+
+local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
 local BytesOperation = require("pb.bytes_operation")
 local pb_pair = BytesOperation.pb_pair
@@ -28,18 +29,18 @@ end
 local M = {}
 
 ---@class pbL_EnumValueInfo
----@field name pb_Slice
+---@field name protobuf.Slice
 ---@field number integer
 
 ---@class pbL_EnumInfo
----@field name pb_Slice
+---@field name protobuf.Slice
 ---@field value pbL_EnumValueInfo[]
 
 ---@class pbL_FieldInfo
----@field name pb_Slice
----@field type_name pb_Slice
----@field extendee pb_Slice
----@field default_value pb_Slice
+---@field name protobuf.Slice
+---@field type_name protobuf.Slice
+---@field extendee protobuf.Slice
+---@field default_value protobuf.Slice
 ---@field number integer
 ---@field label integer
 ---@field type integer
@@ -48,17 +49,17 @@ local M = {}
 
 
 ---@class pbL_TypeInfo
----@field name pb_Slice
+---@field name protobuf.Slice
 ---@field is_map boolean
 ---@field field pbL_FieldInfo[]
 ---@field extension pbL_FieldInfo[]
 ---@field enum_type pbL_EnumInfo[]
 ---@field nested_type pbL_TypeInfo[]
----@field oneof_decl pb_Slice[]
+---@field oneof_decl protobuf.Slice[]
 
 ---@class pbL_FileInfo
----@field package pb_Slice
----@field syntax pb_Slice
+---@field package protobuf.Slice
+---@field syntax protobuf.Slice
 ---@field enum_type pbL_EnumInfo[]
 ---@field message_type pbL_TypeInfo[]
 ---@field extension pbL_FieldInfo[]
@@ -110,7 +111,7 @@ local function try_init_pbL_EnumValueInfo(_table)
 end
 
 ---@param L pb_Loader
----@param pv pb_Slice
+---@param pv protobuf.Slice
 ---@return integer
 local function pbL_readbytes(L, pv)
     local len = pb_readbytes(L.s, pv)
@@ -133,27 +134,27 @@ end
 
 
 ---@param L pb_Loader
----@param pv pb_Slice
+---@param pv protobuf.Slice
 ---@return integer
 local function pbL_beginmsg(L, pv)
-    ---@type pb_Slice
-    ---@diagnostic disable-next-line: missing-fields
-    local v = {}
+    local oldSlice = L.s
 
-    local ret = pbL_readbytes(L, v)
+    ---@diagnostic disable-next-line: missing-fields
+    local targetSlice = {} ---@type protobuf.Slice
+    local ret = pbL_readbytes(L, targetSlice)
     if ret ~= PB_OK then
         return ret
     end
-    pv._data = L.s._data
-    pv.pos = L.s.pos
-    pv.start = L.s.start
-    pv.end_pos = L.s.end_pos
-    L.s = v
+    pv._data = oldSlice._data
+    pv.pos = oldSlice.pos
+    pv.start = oldSlice.start
+    pv.end_pos = oldSlice.end_pos
+    L.s = targetSlice
     return PB_OK
 end
 
 ---@param L pb_Loader
----@param pv pb_Slice
+---@param pv protobuf.Slice
 local function pbL_endmsg(L, pv)
     L.s = pv
 end
@@ -163,10 +164,9 @@ end
 ---@param info pbL_FieldInfo
 ---@return integer
 function M.pbL_FieldOptions(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    local targetSlice = {} ---@type protobuf.Slice
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
     while true do
         local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
@@ -178,7 +178,7 @@ function M.pbL_FieldOptions(L, info)
             if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK;
 end
 
@@ -187,11 +187,10 @@ end
 ---@param info pbL_FieldInfo
 ---@return integer
 function M.pbL_FieldDescriptorProto(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
+    local targetSlice = {} ---@type protobuf.Slice
     try_init_pbL_FieldInfo(info)
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
     info.packed = nil
 
     while true do
@@ -229,7 +228,7 @@ function M.pbL_FieldDescriptorProto(L, info)
         end
     end
 
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK;
 end
 
@@ -238,11 +237,11 @@ end
 ---@param info pbL_EnumValueInfo
 ---@return integer
 local function pbL_EnumValueDescriptorProto(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
+    local targetSlice = {} ---@type protobuf.Slice
+
     try_init_pbL_EnumValueInfo(info)
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
         local len, tag = pb_readvarint32(L.s) ---@cast tag integer
@@ -258,7 +257,7 @@ local function pbL_EnumValueDescriptorProto(L, info)
         end
     end
 
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK;
 end
 
@@ -267,11 +266,11 @@ end
 ---@param info pbL_EnumInfo
 ---@return integer
 function M.pbL_EnumDescriptorProto(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
+    local targetSlice = {} ---@type protobuf.Slice
+
     try_init_pbL_EnumInfo(info)
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
         local len, tag = pb_readvarint32(L.s) ---@cast tag integer
@@ -285,7 +284,7 @@ function M.pbL_EnumDescriptorProto(L, info)
         end
     end
 
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK;
 end
 
@@ -294,11 +293,11 @@ end
 ---@param info pbL_TypeInfo
 ---@return integer
 function M.pbL_MessageOptions(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
+    local targetSlice = {} ---@type protobuf.Slice
+
     try_init_pbL_TypeInfo(info)
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
         local len, tag = pb_readvarint32(L.s) ---@cast tag integer
@@ -312,7 +311,7 @@ function M.pbL_MessageOptions(L, info)
         end
     end
 
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK;
 end
 
@@ -321,11 +320,11 @@ end
 ---@param info pbL_TypeInfo
 ---@return integer
 function M.pbL_OneofDescriptorProto(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
+    local targetSlice = {} ---@type protobuf.Slice
+
     try_init_pbL_TypeInfo(info)
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
         local len, tag = pb_readvarint32(L.s) ---@cast tag integer
@@ -337,7 +336,7 @@ function M.pbL_OneofDescriptorProto(L, info)
         end
     end
 
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK;
 end
 
@@ -346,11 +345,11 @@ end
 ---@param info pbL_TypeInfo
 ---@return integer
 function M.pbL_DescriptorProto(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
+    local targetSlice = {} ---@type protobuf.Slice
+
     try_init_pbL_TypeInfo(info)
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
     while true do
         local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
@@ -372,7 +371,7 @@ function M.pbL_DescriptorProto(L, info)
             if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK
 end
 
@@ -381,11 +380,11 @@ end
 ---@param info pbL_FileInfo
 ---@return integer
 function M.pbL_FileDescriptorProto(L, info)
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local s = {}
+    local targetSlice = {} ---@type protobuf.Slice
+
     try_init_pbL_FileInfo(info)
-    assert(pbL_beginmsg(L, s) == PB_OK)
+    assert(pbL_beginmsg(L, targetSlice) == PB_OK)
     while true do
         local len, tag = pb_readvarint32(L.s) ---@cast tag integer
         if len == 0 then break end
@@ -403,7 +402,7 @@ function M.pbL_FileDescriptorProto(L, info)
             if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
         end
     end
-    pbL_endmsg(L, s)
+    pbL_endmsg(L, targetSlice)
     return PB_OK
 end
 

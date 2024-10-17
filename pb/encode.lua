@@ -28,7 +28,7 @@ local lpb_toslice = require("pb.util").lpb_toslice
 local pb_len = require("pb.util").pb_len
 local pb_typename = require("pb.util").pb_typename
 local lpb_expected = require("pb.util").lpb_expected
-local pb_slice = require("pb.util").pb_slice
+local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
 local lpb_type = require("pb.search").lpb_type
 
@@ -67,6 +67,8 @@ local type        = type
 local tonumber    = tonumber
 local stringChar  = string.char
 local tableUnpack = table.unpack
+local rawget      = rawget
+local rawset      = rawset
 
 --#endregion
 
@@ -77,8 +79,8 @@ local M           = {}
 
 ---@class lpb_Env
 ---@field LS lpb_State
----@field b Protobuf.Char[]
----@field s pb_Slice
+---@field b protobuf.Char[]
+---@field s protobuf.Slice
 ---@field saveTable table 保存解码后的数据
 
 
@@ -378,7 +380,7 @@ end
 ---@return string
 function M.encode(type, data)
     local globalState = State.lpb_lstate()
-    local protobufType = lpb_type(globalState, pb_slice(type))
+    local protobufType = lpb_type(globalState, NewProtobufSlice(type))
     if not protobufType then
         error("unknown type: " .. type)
     end

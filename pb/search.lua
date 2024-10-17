@@ -10,7 +10,7 @@ local M = {}
 
 -- 搜索类型
 ---@param LS lpb_State
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return Protobuf.Type?
 function M.lpb_type(LS, s)
     -- 0: `\0`   46: '.'

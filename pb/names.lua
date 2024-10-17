@@ -35,7 +35,7 @@ end
 
 ---尝试获取名称, 如果名称不存在, 则创建名称
 ---@param state pb_State 状态
----@param s pb_Slice|string 字符串或切片
+---@param s protobuf.Slice|string 字符串或切片
 ---@return protobuf.NameValue? @名称
 function Export.tryGetName(state, s)
     local name

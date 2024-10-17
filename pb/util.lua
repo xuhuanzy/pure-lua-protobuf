@@ -1,5 +1,9 @@
 local ConstantDefine = require("pb.ConstantDefine")
 
+local tool = require "pb.tool"
+local meta = tool.meta
+local setmetatable = setmetatable
+
 local tablePack = table.pack
 local tableUnpack = table.unpack
 local stringByte = string.byte
@@ -40,36 +44,43 @@ local PB_TWIRECOUNT = ConstantDefine.pb_WireType.PB_TWIRECOUNT
 local M = {}
 
 
----@param s? string|Protobuf.Char[]
----@param len integer
----@return pb_Slice
-local function pb_lslice(s, len)
-    ---@type pb_Slice
-    return {
+--#region Slice
+
+
+-- 切片
+---@class protobuf.Slice
+---@field _data protobuf.Char[]
+---@field pos? integer 当前位置
+---@field start? integer 起始位置
+---@field end_pos? integer 结束位置
+---@field stringValue string? 字符串值缓存. 如果该值不为空, 则其他值不应该发生改变
+local ProtobufSlice = meta("protobuf.Slice")
+
+---@param data? string|protobuf.Char[]
+---@param len? integer
+---@return protobuf.Slice
+function ProtobufSlice.new(data, len)
+    len = len or data and #data or 0
+    ---@type protobuf.Slice
+    local self = {
         ---@diagnostic disable-next-line: assign-type-mismatch
-        _data = s and (
-            type(s) == "string" and { stringByte(s, 1, len) } or s
+        _data = data and (
+            type(data) == "string" and { stringByte(data, 1, len) } or data
         ),
-        pos = s and 1 or nil,
-        start = s and 1 or nil,
-        end_pos = len + 1
+        start = data and 1 or nil,
+        pos = data and 1 or nil,
+        end_pos = len + 1,
+        stringValue = nil,
     }
+    return setmetatable(self, ProtobufSlice)
 end
-M.pb_lslice = pb_lslice
+
+M.ProtobufSlice = ProtobufSlice
+
+--#endregion
 
 
----@param s string?
----@return pb_Slice
-local function pb_slice(s)
-    if s then
-        return pb_lslice(s, #s)
-    else
-        return pb_lslice(nil, 0)
-    end
-end
-M.pb_slice = pb_slice
-
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer
 local function pb_len(s)
     return s.end_pos - s.pos
@@ -77,14 +88,14 @@ end
 M.pb_len = pb_len
 
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer
 function M.pb_pos(s)
     return s.pos - s.start
 end
 
 -- 获取字符串
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return string?
 function M.getSliceString(s)
     if not s._data then return nil end
@@ -92,25 +103,17 @@ function M.getSliceString(s)
     return s.stringValue
 end
 
--- 复制`Slice`, 返回`.pos`到`.end_pos`的数据
----@param s pb_Slice
----@return pb_Slice
-function M.sliceCopy(s)
-    local newData = tablePack(tableUnpack(s._data, s.pos, s.end_pos - 1))
-    return pb_lslice(newData, pb_len(s))
-end
-
 ---@param value any
----@return pb_Slice
+---@return protobuf.Slice
 function M.lpb_toslice(value)
     if type(value) == "string" then
-        return pb_lslice(value, #value)
+        return ProtobufSlice.new(value, #value)
     end
-    return pb_slice(nil)
+    return ProtobufSlice.new(nil, 0)
 end
 
 -- 字节数组转换为`string`
----@param charArray Protobuf.Char[]
+---@param charArray protobuf.Char[]
 ---@return string
 function M.charArrayToString(charArray)
     return stringChar(tableUnpack(charArray))

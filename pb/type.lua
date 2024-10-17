@@ -38,7 +38,6 @@ end
 ---@param name protobuf.NameValue
 function ProtobufType.new(name)
     ---@type Protobuf.Type
-    ---@diagnostic disable-next-line: missing-fields
     local self = {
         name = name,
         basename = getBasename(name),

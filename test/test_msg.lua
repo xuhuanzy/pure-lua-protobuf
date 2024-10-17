@@ -72,4 +72,3 @@ end)
 TimerTest("msgpack encode & decode", "万", function()
     msgpackUnpack(msgpackPack(data))
 end)
-

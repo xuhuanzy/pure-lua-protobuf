@@ -3,7 +3,6 @@
     "Lua.runtime.pathStrict": true,
     "Lua.runtime.special": {
         "include": "require",
-        "argcheck": "assert"
     },
     "Lua.hover.expandAlias": false,
     "Lua.diagnostics.groupFileStatus": {

@@ -12,7 +12,7 @@ local PB_Tmessage = ConstantDefine.pb_FieldType.PB_Tmessage
 local PB_Tenum = ConstantDefine.pb_FieldType.PB_Tenum
 
 local charArrayToString = require("pb.util").charArrayToString
-local pb_slice = require("pb.util").pb_slice
+local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
 
 local tryGetName = require("pb.names").tryGetName
@@ -21,16 +21,16 @@ local tableInsert = table.insert
 
 
 ---@class pb_Loader
----@field s pb_Slice 需要处理的数据
+---@field s protobuf.Slice 需要处理的数据
 ---@field is_proto3 boolean 是否是proto3
----@field b Protobuf.Char[] 自己的数据
+---@field b protobuf.Char[] 自己的数据
 
 ---@class PB.Loader
 local M = {}
 
 
 ---@param state pb_State
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@param loader pb_Loader
 ---@param isoOut boolean
 ---@return protobuf.NameValue? name 名称
@@ -212,7 +212,7 @@ end
 
 
 ---@param state pb_State
----@param s pb_Slice
+---@param s protobuf.Slice
 local function pb_load(state, s)
     ---@type pbL_FileInfo[]
     local files = {}
@@ -231,7 +231,7 @@ end
 ---@return integer @当前数据位置
 function M.Load(data)
     local state = State.lpb_lstate()
-    local s = pb_slice(data)
+    local s = NewProtobufSlice(data)
     pb_load(state.local_state, s)
     State.GlobalState = state.local_state
     return true, s.pos - s.start + 1

@@ -23,7 +23,7 @@ local pb_wtypebytype = require("pb.util").pb_wtypebytype
 local pb_wtypename = require("pb.util").pb_wtypename
 local pb_typename = require("pb.util").pb_typename
 local pb_pos = require("pb.util").pb_pos
-local pb_slice = require("pb.util").pb_slice
+local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
 
 
@@ -119,11 +119,11 @@ local function pushDefultFieldNumber(env, field, isProto3, isUnsigned)
     return value
 end
 
----@type {[pb_FieldType]: fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)}
-local switchPushDefaultField;
+
 ---@type {[pb_FieldType]: fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)}
 local switchPushDefaultField
 switchPushDefaultField = {
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tbytes] = function(env, field, isProto3)
         if field.default_value then
             return true, field.default_value
@@ -132,9 +132,11 @@ switchPushDefaultField = {
         end
         return false
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tstring] = function(env, field, isProto3)
         return switchPushDefaultField[PB_Tbytes](env, field, isProto3)
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tint32] = function(env, field, isProto3)
         local value = pushDefultFieldNumber(env, field, isProto3, false)
         if value then
@@ -142,9 +144,11 @@ switchPushDefaultField = {
         end
         return false
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tint64] = function(env, field, isProto3)
         return switchPushDefaultField[PB_Tint32](env, field, isProto3)
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tbool] = function(env, field, isProto3)
         if field.default_value then
             local boolValue = field.default_value == "true"
@@ -154,6 +158,7 @@ switchPushDefaultField = {
         end
         return false
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tdouble] = function(env, field, isProto3)
         if field.default_value then
             local value = tonumber(field.default_value)
@@ -165,9 +170,11 @@ switchPushDefaultField = {
         end
         return false
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tfloat] = function(env, field, isProto3)
         return switchPushDefaultField[PB_Tdouble](env, field, isProto3)
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tenum] = function(env, field, isProto3)
         local type = field.type
         if not type then return false end
@@ -190,10 +197,12 @@ switchPushDefaultField = {
         end
         return false
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tmessage] = function(env, field, isProto3)
         lpb_pushtypetable(env, field.type)
         return true
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tuint32] = function(env, field, isProto3)
         local value = pushDefultFieldNumber(env, field, isProto3, true)
         if value then
@@ -201,12 +210,15 @@ switchPushDefaultField = {
         end
         return false
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tuint64] = function(env, field, isProto3)
         return switchPushDefaultField[PB_Tuint32](env, field, isProto3)
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tfixed32] = function(env, field, isProto3)
         return switchPushDefaultField[PB_Tuint32](env, field, isProto3)
     end,
+    ---@overload fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)
     [PB_Tfixed64] = function(env, field, isProto3)
         return switchPushDefaultField[PB_Tuint64](env, field, isProto3)
     end,
@@ -308,9 +320,9 @@ end
 local function lpbD_rawfield(env, field, saveTable)
     local _newField = nil
     local value = nil
-    ---@type pb_Slice
     ---@diagnostic disable-next-line: missing-fields
-    local targetSlice = {}
+    local targetSlice = {} ---@type protobuf.Slice
+
     if field.type_id == PB_Tenum then
         local len, tag = pb_readvarint64(env.s) ---@cast tag integer
         if len == 0 then
@@ -367,9 +379,8 @@ local function lpbD_repeated(env, field, tag, saveTable)
         saveTable[#saveTable + 1] = value
     else
         local len = #saveTable
-        ---@type pb_Slice
-        ---@diagnostic disable-next-line: missing-fields
-        local targetSlice = {}
+        ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
+        local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
         local oldSlice = env.s
         lpb_readbytes(env.s, targetSlice)
         while targetSlice.pos < targetSlice.end_pos do
@@ -418,14 +429,14 @@ end
 ---@return any
 function M.decode(type, data, saveTable)
     local globalState = lpb_lstate()
-    local protobufType = lpb_type(globalState, pb_slice(type))
+    local protobufType = lpb_type(globalState, NewProtobufSlice(type))
     argcheck(protobufType ~= nil, "type '%s' does not exists", type)
     ---@cast protobufType Protobuf.Type
     ---@type lpb_Env
     local env = {
         LS = globalState,
         b = {},
-        s = pb_slice(data),
+        s = NewProtobufSlice(data),
         ---@diagnostic disable-next-line: assign-type-mismatch
         saveTable = saveTable
     }

@@ -2,7 +2,7 @@
 local pb_len = require("pb.util").pb_len
 local pb_pos = require("pb.util").pb_pos
 local getSliceString = require("pb.util").getSliceString
-local pb_typename = require("pb.util").pb_typename
+local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
 local pb_decode_sint32 = require("pb.tool").pb_decode_sint32
 local pb_decode_sint64 = require("pb.tool").pb_decode_sint64
@@ -63,7 +63,7 @@ local M = {}
 
 --#region 写入
 
----@param buff Protobuf.Char[]
+---@param buff protobuf.Char[]
 ---@param n integer
 ---@return integer @写入的字节数
 local function pb_write32(buff, n)
@@ -78,7 +78,7 @@ local function pb_write32(buff, n)
     return c + 1
 end
 
----@param buff Protobuf.Char[]
+---@param buff protobuf.Char[]
 ---@param n integer
 ---@return integer
 local function pb_write64(buff, n)
@@ -93,7 +93,7 @@ local function pb_write64(buff, n)
     return c + 1
 end
 
----@param b Protobuf.Char[]
+---@param b protobuf.Char[]
 ---@param n integer
 ---@return integer
 local function pb_addvarint32(b, n)
@@ -101,7 +101,7 @@ local function pb_addvarint32(b, n)
     return pb_write32(b, n)
 end
 
----@param b Protobuf.Char[]
+---@param b protobuf.Char[]
 ---@param n integer
 ---@return integer
 local function pb_addvarint64(b, n)
@@ -111,7 +111,7 @@ end
 
 
 
----@param b Protobuf.Char[]
+---@param b protobuf.Char[]
 ---@param n integer
 ---@return integer
 local function pb_addfixed32(b, n)
@@ -123,7 +123,7 @@ local function pb_addfixed32(b, n)
     return 8
 end
 
----@param b Protobuf.Char[]
+---@param b protobuf.Char[]
 ---@param n integer
 ---@return integer
 local function pb_addfixed64(b, n)
@@ -135,8 +135,8 @@ local function pb_addfixed64(b, n)
     return 8
 end
 
----@param b Protobuf.Char[]
----@param s pb_Slice
+---@param b protobuf.Char[]
+---@param s protobuf.Slice
 ---@return integer
 local function pb_addslice(b, s)
     local len = pb_len(s)
@@ -148,8 +148,8 @@ local function pb_addslice(b, s)
 end
 
 -- 添加字节
----@param b Protobuf.Char[]
----@param s pb_Slice
+---@param b protobuf.Char[]
+---@param s protobuf.Slice
 ---@return integer
 local function pb_addbytes(b, s)
     local len = pb_len(s)
@@ -157,7 +157,7 @@ local function pb_addbytes(b, s)
     return ret + pb_addslice(b, s)
 end
 
----@param targetCharArray Protobuf.Char[] 缓冲区
+---@param targetCharArray protobuf.Char[] 缓冲区
 ---@param beforeLength integer 前面的有效字节长度(包含预分配的长度)
 ---@param prealloc integer 预分配长度
 ---@return integer @返回`写入的长度` + `剩余有效字节的长度`
@@ -166,7 +166,7 @@ local function pb_addlength(targetCharArray, beforeLength, prealloc)
     if curLength < beforeLength then
         return 0
     end
-    ---@type Protobuf.Char[]
+    ---@type protobuf.Char[]
     local newBuff = {}
     local ml = pb_write64(newBuff, curLength - beforeLength)
     assert(ml >= prealloc) -- 预分配长度必须小于等于ml
@@ -188,7 +188,7 @@ local function pb_addlength(targetCharArray, beforeLength, prealloc)
 end
 
 
----@param targetCharArray Protobuf.Char[] 缓冲区
+---@param targetCharArray protobuf.Char[] 缓冲区
 ---@param beforeLength integer 前面的有效字节长度
 ---@param prealloc integer 预分配长度
 ---@return integer @返回`写入的长度` + `剩余有效字节的长度`
@@ -234,7 +234,7 @@ end
 
 
 -- 慢速逐字节读取, 返回值为64位整数
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer @ 读取到的字节数
 ---@return integer? @ 读取到的值
 local function pb_readvarint_slow(s)
@@ -258,7 +258,7 @@ end
 
 
 -- 备用路径，逐字节读取 varint
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer @ 读取到的字节数
 ---@return integer? @ 读取到的值
 local function pb_readvarint32_fallback(s)
@@ -280,7 +280,7 @@ local function pb_readvarint32_fallback(s)
 end
 
 -- 备用路径，逐字节读取 varint
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer @ 读取到的字节数
 ---@return integer? @ 读取到的值
 local function pb_readvarint64_fallback(s)
@@ -304,7 +304,7 @@ local function pb_readvarint64_fallback(s)
     return pos - o, result
 end
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer @读取到的字节数
 ---@return integer? @读取到的值
 local function pb_readvarint32(s)
@@ -336,7 +336,7 @@ local function pb_readvarint32(s)
     return ret_num, ret_val
 end
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer @读取到的字节数
 ---@return integer? @读取到的值
 local function pb_readvarint64(s)
@@ -360,7 +360,7 @@ local function pb_readvarint64(s)
 end
 
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer len 读取到的字节数
 ---@return integer? value 读取到的值
 local function pb_readfixed32(s)
@@ -379,7 +379,7 @@ local function pb_readfixed32(s)
 end
 
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer len 读取到的字节数
 ---@return integer? value 读取到的值
 local function pb_readfixed64(s)
@@ -399,8 +399,8 @@ end
 
 
 
----@param s pb_Slice
----@param pv pb_Slice
+---@param s protobuf.Slice
+---@param pv protobuf.Slice
 ---@return integer
 local function pb_readbytes(s, pv)
     local pos = s.pos
@@ -420,7 +420,7 @@ local function pb_readbytes(s, pv)
     return s.pos - pos
 end
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer
 local function pb_skipvarint(s)
     local pos = s.pos
@@ -437,7 +437,7 @@ local function pb_skipvarint(s)
     return pos - op
 end
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@param len integer
 ---@return integer
 local function pb_skipslice(s, len)
@@ -446,7 +446,7 @@ local function pb_skipslice(s, len)
     return len
 end
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return integer
 local function pb_skipbytes(s)
     local pos = s.pos
@@ -463,11 +463,11 @@ local function pb_skipbytes(s)
 end
 
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@param tag integer
----@param pv pb_Slice
+---@param target protobuf.Slice
 ---@return integer
-local function pb_readgroup(s, tag, pv)
+local function pb_readgroup(s, tag, target)
     local pos = s.pos
     assert(pb_gettype(tag) == PB_TGSTART)
     while true do
@@ -475,10 +475,10 @@ local function pb_readgroup(s, tag, pv)
         if count == 0 then break end ---@cast newtag integer
         if pb_gettype(newtag) == PB_TGEND then
             if pb_gettag(newtag) ~= pb_gettag(tag) then break end
-            pv._data = s._data
-            pv.pos = s.pos
-            pv.start = s.start
-            pv.end_pos = s.pos - count
+            target._data = s._data
+            target.pos = s.pos
+            target.start = s.start
+            target.end_pos = s.pos - count
             return s.pos - pos
         end
         if pb_skipvalue(s, newtag) == 0 then break end
@@ -488,15 +488,13 @@ local function pb_readgroup(s, tag, pv)
 end
 
 
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@param tag integer
 ---@return integer
 pb_skipvalue = function(s, tag)
     local pos = s.pos
     local ret = 0
-    ---@type pb_Slice
-    ---@diagnostic disable-next-line: missing-fields
-    local data = {}
+
     local switchTag = pb_gettype(tag)
     if switchTag == PB_TVARINT then
         ret = pb_skipvarint(s)
@@ -507,6 +505,8 @@ pb_skipvalue = function(s, tag)
     elseif switchTag == PB_T32BIT then
         ret = pb_skipslice(s, 4)
     elseif switchTag == PB_TGSTART then
+        ---@diagnostic disable-next-line: missing-fields
+        local data = {} ---@type protobuf.Slice
         ret = pb_readgroup(s, tag, data)
     end
     if ret == 0 then
@@ -517,9 +517,9 @@ end
 
 
 -- 读取指定长度的字节，并返回读取到的字节数
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@param len integer
----@param targetSlice pb_Slice
+---@param targetSlice protobuf.Slice
 ---@return integer @读取到的字节数
 local function pb_readslice(s, len, targetSlice)
     if pb_len(s) < len then
@@ -534,8 +534,8 @@ local function pb_readslice(s, len, targetSlice)
 end
 
 
----@param s pb_Slice
----@param targetSlice pb_Slice
+---@param s protobuf.Slice
+---@param targetSlice protobuf.Slice
 local function lpb_readbytes(s, targetSlice)
     local readLen, len = pb_readvarint64(s)
     if readLen == 0 or len > PB_MAX_SIZET then
@@ -564,106 +564,112 @@ local function lpb_pushinteger(value, isUnsigned, mode)
     end
 end
 
+---@type {[pb_FieldType]: fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+local switchReadType
 -- 读取类型转为读表形式
-local switchReadType = {
+switchReadType = {
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tbool] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return value ~= 0
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tenum] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return value
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tuint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(pb_decode_sint32(value), false, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tuint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(pb_decode_sint64(value), false, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tfloat] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
         return pb_decode_float(value)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tfixed32] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsfixed32] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tdouble] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
         return pb_decode_double(value)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tfixed64] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsfixed64] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tbytes] = function(env, s)
-        local targetSlice = {}
+        ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
+        local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tstring] = function(env, s)
-        local targetSlice = {}
+        ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
+        local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
     end,
-
+    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tmessage] = function(env, s)
-        local targetSlice = {}
+        ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
+        local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
     end,
@@ -672,7 +678,7 @@ local switchReadType = {
 
 ---@param env lpb_Env
 ---@param fieldType integer
----@param s pb_Slice
+---@param s protobuf.Slice
 ---@return number|string|boolean|nil value 读取到的值
 local function lpb_readtype(env, fieldType, s)
     return switchReadType[fieldType](env, s)
