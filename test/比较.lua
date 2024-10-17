@@ -57,6 +57,10 @@ do
     TimerTest("pb decode", "万", function()
         _pb_decode("Person", bytes)
     end)
+
+    TimerTest("pb encode & decode", "万", function()
+        _pb_decode("Person", _pb_encode("Person", data))
+    end)
 end
 
 do
@@ -65,10 +69,13 @@ do
     local msgpackUnpack = require('msgpack.msgpack').unpack
 
     local bytes = LCompressDeflate(LibDeflate, msgpackPack(data))
-    TimerTest("msgpack encode", 1000, function()
+    TimerTest("msgpack encode and compress", "万", function()
         LCompressDeflate(LibDeflate, msgpackPack(data))
     end)
-    TimerTest("msgpack decode", 1000, function()
+    TimerTest("msgpack decode and decompress", "万", function()
         msgpackUnpack(LDecompressDeflate(LibDeflate, bytes))
+    end)
+    TimerTest("msgpack encode and decode", "万", function()
+        msgpackUnpack(LDecompressDeflate(LibDeflate, LCompressDeflate(LibDeflate, msgpackPack(data))))
     end)
 end

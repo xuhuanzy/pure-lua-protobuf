@@ -407,6 +407,7 @@ lpbD_message = function(env, protobufType, saveTable)
         if field == nil then
             pb_skipvalue(s, tag)
         elseif field.type and field.type.is_map then
+            --TODO 实现map解码
         elseif field.repeated then
             lpbD_repeated(env, field, tag, lpb_fetchtable(field, env.LS.array_type, saveTable))
         else

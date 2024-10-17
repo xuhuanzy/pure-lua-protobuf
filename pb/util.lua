@@ -1,7 +1,6 @@
 local ConstantDefine = require("pb.ConstantDefine")
 
-local tool = require "pb.tool"
-local meta = tool.meta
+local meta = require("pb.tool").meta
 local setmetatable = setmetatable
 
 local tablePack = table.pack

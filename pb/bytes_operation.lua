@@ -2,7 +2,6 @@
 local pb_len = require("pb.util").pb_len
 local pb_pos = require("pb.util").pb_pos
 local getSliceString = require("pb.util").getSliceString
-local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
 local pb_decode_sint32 = require("pb.tool").pb_decode_sint32
 local pb_decode_sint64 = require("pb.tool").pb_decode_sint64

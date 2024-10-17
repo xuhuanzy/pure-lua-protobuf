@@ -1,6 +1,6 @@
 local fileDescriptor = require("pb.file_descriptor")
 
-local State = require("pb.state")
+local ProtobufState = require("pb.state")
 
 local pb_addslice = require("pb.bytes_operation").pb_addslice
 
@@ -230,10 +230,10 @@ end
 ---@return boolean @是否成功
 ---@return integer @当前数据位置
 function M.Load(data)
-    local state = State.lpb_lstate()
+    local state = ProtobufState.lpb_lstate()
     local s = NewProtobufSlice(data)
     pb_load(state.local_state, s)
-    State.GlobalState = state.local_state
+    ProtobufState.GlobalState = state.local_state
     return true, s.pos - s.start + 1
 end
 

@@ -1,6 +1,8 @@
 --#region 导入
 
-local State = require("pb.state")
+local lpb_lstate = require("pb.state").lpb_lstate
+local pb_field = require("pb.state").pb_field
+local pb_fname = require("pb.state").pb_fname
 
 local tryGetName = require("pb.names").tryGetName
 
@@ -218,7 +220,7 @@ local function lpbE_enum(env, field, value, exist)
     end
     ---@cast value any
 
-    local ev = State.pb_fname(field.type, tryGetName(env.LS.state, value))
+    local ev = pb_fname(field.type, tryGetName(env.LS.state, value))
     if ev then
         if exist then
             exist[1] = ev.number ~= 0
@@ -299,8 +301,8 @@ end
 ---@param field Protobuf.Field
 ---@param map table
 local function lpbE_map(env, field, map)
-    local kf = State.pb_field(field.type, 1)
-    local vf = State.pb_field(field.type, 2)
+    local kf = pb_field(field.type, 1)
+    local vf = pb_field(field.type, 2)
     if not kf or not vf then
         return
     end
@@ -379,7 +381,7 @@ end
 ---@param data table
 ---@return string
 function M.encode(type, data)
-    local globalState = State.lpb_lstate()
+    local globalState = lpb_lstate()
     local protobufType = lpb_type(globalState, NewProtobufSlice(type))
     if not protobufType then
         error("unknown type: " .. type)

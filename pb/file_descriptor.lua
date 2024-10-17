@@ -1,6 +1,5 @@
 local ConstantDefine = require "pb.ConstantDefine"
 
-local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 
 local BytesOperation = require("pb.bytes_operation")
 local pb_pair = BytesOperation.pb_pair
