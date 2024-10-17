@@ -119,6 +119,100 @@ local function pushDefultFieldNumber(env, field, isProto3, isUnsigned)
     return value
 end
 
+---@type {[pb_FieldType]: fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)}
+local switchPushDefaultField;
+---@type {[pb_FieldType]: fun(env: lpb_Env, field: Protobuf.Field, isProto3: boolean): (boolean, any)}
+local switchPushDefaultField
+switchPushDefaultField = {
+    [PB_Tbytes] = function(env, field, isProto3)
+        if field.default_value then
+            return true, field.default_value
+        elseif isProto3 then
+            return true, ""
+        end
+        return false
+    end,
+    [PB_Tstring] = function(env, field, isProto3)
+        return switchPushDefaultField[PB_Tbytes](env, field, isProto3)
+    end,
+    [PB_Tint32] = function(env, field, isProto3)
+        local value = pushDefultFieldNumber(env, field, isProto3, false)
+        if value then
+            return true, value
+        end
+        return false
+    end,
+    [PB_Tint64] = function(env, field, isProto3)
+        return switchPushDefaultField[PB_Tint32](env, field, isProto3)
+    end,
+    [PB_Tbool] = function(env, field, isProto3)
+        if field.default_value then
+            local boolValue = field.default_value == "true"
+            return true, boolValue
+        elseif isProto3 then
+            return true, false
+        end
+        return false
+    end,
+    [PB_Tdouble] = function(env, field, isProto3)
+        if field.default_value then
+            local value = tonumber(field.default_value)
+            if value then
+                return true, value
+            end
+        elseif isProto3 then
+            return true, 0.0
+        end
+        return false
+    end,
+    [PB_Tfloat] = function(env, field, isProto3)
+        return switchPushDefaultField[PB_Tdouble](env, field, isProto3)
+    end,
+    [PB_Tenum] = function(env, field, isProto3)
+        local type = field.type
+        if not type then return false end
+        local enumField = pb_fname(type, field.default_value)
+        if enumField then
+            local value
+            if env.LS.enum_as_value then
+                value = lpb_pushinteger(enumField.number, true, env.LS.int64_mode)
+            else
+                value = enumField.name
+            end
+            return true, value
+        elseif isProto3 then
+            enumField = pb_field(type, 0)
+            if enumField == nil or env.LS.enum_as_value then
+                return true, 0
+            else
+                return true, enumField.name
+            end
+        end
+        return false
+    end,
+    [PB_Tmessage] = function(env, field, isProto3)
+        lpb_pushtypetable(env, field.type)
+        return true
+    end,
+    [PB_Tuint32] = function(env, field, isProto3)
+        local value = pushDefultFieldNumber(env, field, isProto3, true)
+        if value then
+            return true, value
+        end
+        return false
+    end,
+    [PB_Tuint64] = function(env, field, isProto3)
+        return switchPushDefaultField[PB_Tuint32](env, field, isProto3)
+    end,
+    [PB_Tfixed32] = function(env, field, isProto3)
+        return switchPushDefaultField[PB_Tuint32](env, field, isProto3)
+    end,
+    [PB_Tfixed64] = function(env, field, isProto3)
+        return switchPushDefaultField[PB_Tuint64](env, field, isProto3)
+    end,
+}
+
+
 -- 获取默认字段的值
 ---@param env lpb_Env 环境
 ---@param field Protobuf.Field 字段
@@ -127,77 +221,7 @@ end
 ---@return any value 值
 local function lpb_pushdeffield(env, field, isProto3)
     if field == nil then return false end
-    local typeId = field.type_id
-    local success = false
-    local value = nil
-
-    if typeId == PB_Tbytes or typeId == PB_Tstring then
-        if field.default_value then
-            value = field.default_value
-        elseif isProto3 then
-            value = ""
-        end
-        success = true
-    elseif typeId == PB_Tint32 or typeId == PB_Tint64 then
-        value = pushDefultFieldNumber(env, field, isProto3, false)
-        if value == nil then return false end
-        success = true
-    elseif typeId == PB_Tbool then
-        if field.default_value then
-            if field.default_value == "true" then
-                value = true
-            elseif field.default_value == "false" then
-                value = false
-            end
-        elseif isProto3 then
-            value = false
-        end
-        success = true
-    elseif typeId == PB_Tdouble or typeId == PB_Tfloat then
-        if field.default_value then
-            value = tonumber(field.default_value)
-            if value == nil then return false end
-        elseif isProto3 then
-            value = 0.0
-        end
-        success = true
-    elseif typeId == PB_Tenum then
-        local type = field.type
-        if not type then return false end
-        ---@diagnostic disable-next-line: cast-local-type
-        field = pb_fname(type, field.default_value)
-        if field then
-            if env.LS.enum_as_value then
-                value = lpb_pushinteger(field.number, true, env.LS.int64_mode)
-            else
-                value = field.name
-            end
-            success = true
-        elseif isProto3 then
-            ---@diagnostic disable-next-line: cast-local-type
-            field = pb_field(type, 0)
-            -- 默认值为`0`
-            if field or env.LS.enum_as_value then
-                value = 0
-            else
-                ---@cast field Protobuf.Field
-                value = field.name
-            end
-            success = true
-        end
-    elseif typeId == PB_Tmessage then
-        lpb_pushtypetable(env, field.type)
-        success = true
-    elseif typeId == PB_Tuint64 or typeId == PB_Tfixed64 or typeId == PB_Tfixed32 or typeId == PB_Tuint32 then
-        value = pushDefultFieldNumber(env, field, isProto3, true)
-        if value == nil then return false end
-        success = true
-    else
-        value = pushDefultFieldNumber(env, field, isProto3, false)
-        if value == nil then return false end
-        success = true
-    end
-    return success, value
+    return switchPushDefaultField[field.type_id](env, field, isProto3)
 end
 
 
