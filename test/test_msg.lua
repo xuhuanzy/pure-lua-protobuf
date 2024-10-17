@@ -44,31 +44,32 @@ local data = {
 
 local bytes = assert(_pb_encode("Person", data))
 
+local testCount = "十万"
 
-TimerTest("pb encode", "万", function()
+TimerTest("pb encode", testCount, function()
     _pb_encode("Person", data)
 end)
 
-TimerTest("pb decode", "万", function()
+TimerTest("pb decode", testCount, function()
     _pb_decode("Person", bytes)
 end)
 
-TimerTest("pb encode & decode", "万", function()
+TimerTest("pb encode & decode", testCount, function()
     _pb_decode("Person", _pb_encode("Person", data))
 end)
 
 
 local msgpackPack = require('msgpack.msgpack').pack
 local bytes = msgpackPack(data)
-TimerTest("msgpack encode", "万", function()
+TimerTest("msgpack encode", testCount, function()
     msgpackPack(data)
 end)
 
 local msgpackUnpack = require('msgpack.msgpack').unpack
-TimerTest("msgpack decode", "万", function()
+TimerTest("msgpack decode", testCount, function()
     msgpackUnpack(bytes)
 end)
 
-TimerTest("msgpack encode & decode", "万", function()
+TimerTest("msgpack encode & decode", testCount, function()
     msgpackUnpack(msgpackPack(data))
 end)

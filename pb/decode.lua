@@ -68,6 +68,8 @@ local rawget = rawget
 local rawset = rawset
 local tointeger = math.tointeger
 local tonumber = tonumber
+local pairs = pairs
+local ipairs = ipairs
 
 
 ---@class Protobuf.Decode
@@ -314,10 +316,9 @@ end
 
 ---@param env lpb_Env
 ---@param field Protobuf.Field
----@param saveTable table
 ---@return any value 值
 ---@nodiscard
-local function lpbD_rawfield(env, field, saveTable)
+local function lpbD_rawfield(env, field)
     local _newField = nil
     local value = nil
     ---@diagnostic disable-next-line: missing-fields
@@ -357,12 +358,11 @@ end
 ---@param env lpb_Env 环境
 ---@param field Protobuf.Field 字段
 ---@param tag integer 标签
----@param saveTable table 数据
 ---@return any value 值
 ---@nodiscard
-local function lpbD_field(env, field, tag, saveTable)
+local function lpbD_field(env, field, tag)
     lpbD_checktype(env, field, tag)
-    return lpbD_rawfield(env, field, saveTable)
+    return lpbD_rawfield(env, field)
 end
 
 
@@ -372,11 +372,9 @@ end
 ---@param tag integer 标签
 ---@param saveTable table 数据
 local function lpbD_repeated(env, field, tag, saveTable)
-    local value
     -- 检查tag是否为非 BYTES 类型，或者字段类型是非 packed 编码的 BYTES 类型
     if pb_gettype(tag) ~= PB_TBYTES or (not field.packed and pb_wtypebytype(field.type_id) == PB_TBYTES) then
-        value = lpbD_field(env, field, tag, saveTable)
-        saveTable[#saveTable + 1] = value
+        saveTable[#saveTable + 1] = lpbD_field(env, field, tag)
     else
         local len = #saveTable
         ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
@@ -385,11 +383,10 @@ local function lpbD_repeated(env, field, tag, saveTable)
         lpb_readbytes(env.s, targetSlice)
         while targetSlice.pos < targetSlice.end_pos do
             env.s = targetSlice
-            value = lpbD_rawfield(env, field, saveTable)
-            env.s = oldSlice
+            saveTable[len + 1] = lpbD_rawfield(env, field)
             len = len + 1
-            saveTable[len] = value
         end
+        env.s = oldSlice
     end
 end
 
@@ -400,8 +397,9 @@ end
 ---@param saveTable table 保存到的表
 lpbD_message = function(env, protobufType, saveTable)
     local s = env.s
+    local len, tag
     while true do
-        local len, tag = pb_readvarint32(s) ---@cast tag integer
+        len, tag = pb_readvarint32(s) ---@cast tag integer
         if len == 0 then break end
         local field = pb_field(protobufType, pb_gettag(tag))
         if field == nil then
@@ -411,13 +409,11 @@ lpbD_message = function(env, protobufType, saveTable)
         elseif field.repeated then
             lpbD_repeated(env, field, tag, lpb_fetchtable(field, env.LS.array_type, saveTable))
         else
-            local key = field.name
             if field.oneof_idx and field.oneof_idx ~= 0 then
-                local oneof_key = protobufType.oneof_index[field.oneof_idx].name
-                rawset(saveTable, oneof_key, key)
+                -- 设置oneof字段, oneof名称: 填入的目标字段名(不是值)
+                rawset(saveTable, protobufType.oneof_index[field.oneof_idx].name, field.name)
             end
-            local value = lpbD_field(env, field, tag, saveTable)
-            rawset(saveTable, key, value)
+            rawset(saveTable, field.name, lpbD_field(env, field, tag))
         end
     end
 end

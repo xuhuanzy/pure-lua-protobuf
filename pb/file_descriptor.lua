@@ -16,6 +16,7 @@ local PB_T64BIT = ConstantDefine.pb_WireType.PB_T64BIT
 local PB_T32BIT = ConstantDefine.pb_WireType.PB_T32BIT
 local PB_TGSTART = ConstantDefine.pb_WireType.PB_TGSTART
 
+
 -- 模拟数组, 添加一个新的元素, 返回这个元素
 ---@param _table table
 ---@return table

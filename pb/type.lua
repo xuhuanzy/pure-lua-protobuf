@@ -2,6 +2,7 @@ local tool = require "pb.tool"
 local meta = tool.meta
 local setmetatable = setmetatable
 
+
 ---@class Protobuf.OneofEntry
 ---@field name protobuf.NameValue
 ---@field index integer

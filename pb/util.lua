@@ -8,6 +8,8 @@ local tableUnpack = table.unpack
 local stringByte = string.byte
 local stringChar = string.char
 local type = type
+local ipairs = ipairs
+local pairs = pairs
 
 
 local PB_Tdouble = ConstantDefine.pb_FieldType.PB_Tdouble
@@ -73,6 +75,7 @@ function ProtobufSlice.new(data, len)
     }
     return setmetatable(self, ProtobufSlice)
 end
+local NewSlice = ProtobufSlice.new
 
 M.ProtobufSlice = ProtobufSlice
 
@@ -106,9 +109,9 @@ end
 ---@return protobuf.Slice
 function M.lpb_toslice(value)
     if type(value) == "string" then
-        return ProtobufSlice.new(value, #value)
+        return NewSlice(value, #value)
     end
-    return ProtobufSlice.new(nil, 0)
+    return NewSlice(nil, 0)
 end
 
 -- 字节数组转换为`string`

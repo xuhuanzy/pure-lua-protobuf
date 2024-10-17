@@ -55,6 +55,9 @@ local mathType = math.type
 local stringPack = string.pack
 local stringUnpack = string.unpack
 local stringByte = string.byte
+local ipairs = ipairs
+local pairs = pairs
+
 --#endregion
 
 ---@class Protobuf.BytesOperation

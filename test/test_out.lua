@@ -29,6 +29,29 @@ message Person {
     };
 }
 ]])
+
+assert(protoc:load [[
+syntax = "proto3";
+
+message Phone {
+    string name        = 1;
+    int64  phonenumber = 2;
+}
+
+message Person {
+    string name     = 1;
+    int32  age      = 2;
+    string address  = 3;
+    repeated Phone  contacts = 4;
+    double  height = 5;
+
+
+    oneof notice_way{
+        string email = 22;
+        string phone = 23;
+    };
+}
+]])
 local data = {
     name     = "ilse",
     age      = 18,

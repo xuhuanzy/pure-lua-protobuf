@@ -18,7 +18,7 @@ local NewProtobufSlice = require("pb.util").ProtobufSlice.new
 local tryGetName = require("pb.names").tryGetName
 
 local tableInsert = table.insert
-
+local ipairs = ipairs
 
 ---@class pb_Loader
 ---@field s protobuf.Slice 需要处理的数据
@@ -71,6 +71,7 @@ local function pb_newfield(state, type, tname, number)
     local nf = type.field_names[tname]
     local tf = type.field_tags[number]
     if nf and tf and nf == tf then
+        nf.default_value = nil
         print(string.format("pb_newfield pb_delname: %s number: %d", tname, number))
         --TODO 删除默认值
         return nf

@@ -3,7 +3,8 @@ local stringPack = string.pack
 local stringUnpack = string.unpack
 local tostring = tostring
 local tonumber = tonumber
-
+local ipairs = ipairs
+local pairs = pairs
 
 -- 工具类, 不依赖 protobuf 的定义
 ---@class Export.Protobuf.Tool
