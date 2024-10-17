@@ -564,105 +564,105 @@ local function lpb_pushinteger(value, isUnsigned, mode)
     end
 end
 
+-- 读取类型转为读表形式
 local switchReadType = {
-    [PB_Tbool] = function(env, fieldType, s)
-        local len, value = nil, nil
-        len, value = pb_readvarint64(s) ---@cast value integer
+    [PB_Tbool] = function(env, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return value ~= 0
     end,
 
-    [PB_Tenum] = function(env, fieldType, s)
+    [PB_Tenum] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return value
     end,
 
-    [PB_Tint32] = function(env, fieldType, s)
+    [PB_Tint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
 
-    [PB_Tuint32] = function(env, fieldType, s)
+    [PB_Tuint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
 
-    [PB_Tsint32] = function(env, fieldType, s)
+    [PB_Tsint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(pb_decode_sint32(value), false, env.LS.int64_mode)
     end,
 
-    [PB_Tint64] = function(env, fieldType, s)
+    [PB_Tint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
 
-    [PB_Tuint64] = function(env, fieldType, s)
+    [PB_Tuint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
 
-    [PB_Tsint64] = function(env, fieldType, s)
+    [PB_Tsint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(pb_decode_sint64(value), false, env.LS.int64_mode)
     end,
 
-    [PB_Tfloat] = function(env, fieldType, s)
+    [PB_Tfloat] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
         return pb_decode_float(value)
     end,
 
-    [PB_Tfixed32] = function(env, fieldType, s)
+    [PB_Tfixed32] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
 
-    [PB_Tsfixed32] = function(env, fieldType, s)
+    [PB_Tsfixed32] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
 
-    [PB_Tdouble] = function(env, fieldType, s)
+    [PB_Tdouble] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
         return pb_decode_double(value)
     end,
 
-    [PB_Tfixed64] = function(env, fieldType, s)
+    [PB_Tfixed64] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, true, env.LS.int64_mode)
     end,
 
-    [PB_Tsfixed64] = function(env, fieldType, s)
+    [PB_Tsfixed64] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
         return lpb_pushinteger(value, false, env.LS.int64_mode)
     end,
 
-    [PB_Tbytes] = function(env, fieldType, s)
+    [PB_Tbytes] = function(env, s)
         local targetSlice = {}
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
     end,
 
-    [PB_Tstring] = function(env, fieldType, s)
+    [PB_Tstring] = function(env, s)
         local targetSlice = {}
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
     end,
 
-    [PB_Tmessage] = function(env, fieldType, s)
+    [PB_Tmessage] = function(env, s)
         local targetSlice = {}
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
@@ -675,65 +675,7 @@ local switchReadType = {
 ---@param s pb_Slice
 ---@return number|string|boolean|nil value 读取到的值
 local function lpb_readtype(env, fieldType, s)
-    return switchReadType[fieldType](env, fieldType, s)
---[[ 
-    local len, value = nil, nil
-    if fieldType == PB_Tbool or fieldType == PB_Tenum or fieldType == PB_Tint32 or fieldType == PB_Tuint32 or fieldType == PB_Tsint32 or fieldType == PB_Tint64 or fieldType == PB_Tuint64 or fieldType == PB_Tsint64 then
-        len, value = pb_readvarint64(s)
-        if len == 0 then
-            error("invalid varint value at offset " .. (pb_pos(s) + 1))
-        end
-        ---@cast value integer
-        if fieldType == PB_Tbool then
-            return value ~= 0
-        elseif fieldType == PB_Tint32 then
-            return lpb_pushinteger(value, false, env.LS.int64_mode)
-        elseif fieldType == PB_Tuint32 then
-            return lpb_pushinteger(value, true, env.LS.int64_mode)
-        elseif fieldType == PB_Tsint32 then
-            return lpb_pushinteger(pb_decode_sint32(value), false, env.LS.int64_mode)
-        elseif fieldType == PB_Tint64 then
-            return lpb_pushinteger(value, false, env.LS.int64_mode)
-        elseif fieldType == PB_Tuint64 then
-            return lpb_pushinteger(value, true, env.LS.int64_mode)
-        elseif fieldType == PB_Tsint64 then
-            return lpb_pushinteger(pb_decode_sint64(value), false, env.LS.int64_mode)
-        end
-    elseif fieldType == PB_Tfloat or fieldType == PB_Tfixed32 or fieldType == PB_Tsfixed32 then
-        len, value = pb_readfixed32(s)
-        if len == 0 then
-            error("invalid fixed32 value at offset " .. (pb_pos(s) + 1))
-        end
-        ---@cast value integer
-        if fieldType == PB_Tfloat then
-            return pb_decode_float(value)
-        elseif fieldType == PB_Tfixed32 then
-            return lpb_pushinteger(value, true, env.LS.int64_mode)
-        elseif fieldType == PB_Tsfixed32 then
-            return lpb_pushinteger(value, false, env.LS.int64_mode)
-        end
-    elseif fieldType == PB_Tdouble or fieldType == PB_Tfixed64 or fieldType == PB_Tsfixed64 then
-        len, value = pb_readfixed64(s)
-        if len == 0 then
-            error("invalid fixed64 value at offset " .. (pb_pos(s) + 1))
-        end
-        ---@cast value integer
-        if fieldType == PB_Tdouble then
-            return pb_decode_double(value)
-        elseif fieldType == PB_Tfixed64 then
-            return lpb_pushinteger(value, true, env.LS.int64_mode)
-        elseif fieldType == PB_Tsfixed64 then
-            return lpb_pushinteger(value, false, env.LS.int64_mode)
-        end
-    elseif fieldType == PB_Tbytes or fieldType == PB_Tstring or fieldType == PB_Tmessage then
-        ---@type pb_Slice
-        ---@diagnostic disable-next-line: missing-fields
-        local targetSlice = {}
-        lpb_readbytes(s, targetSlice)
-        return getSliceString(targetSlice)
-    else
-        error("unknown type " .. pb_typename(fieldType) .. " (" .. fieldType .. ")")
-    end ]]
+    return switchReadType[fieldType](env, s)
 end
 
 
