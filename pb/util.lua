@@ -57,25 +57,48 @@ local M = {}
 ---@field nameValue string? 名称缓存, 只会在取名称时缓存该值.
 local ProtobufSlice = meta("protobuf.Slice")
 
+---@type {[string]: protobuf.Slice}
+local sliceCache = {} -- 缓存切片
+local sliceCacheCount = 0 -- 缓存切片计数
+
 ---@param data? string|protobuf.Char[]
 ---@param len? integer
 ---@return protobuf.Slice
 function ProtobufSlice.new(data, len)
+    --[[ 事实上返回的是表而不是类 ]]
     len = len or data and #data or 0
+    local charArray
+    if type(data) == "string" then
+        charArray = sliceCache[data]
+        if not charArray then
+            charArray = { stringByte(data, 1, -1) }
+            -- 不缓存过长的字符串, 过长的字符串一般是定义或序列化的数据
+            if #data <= 64 then
+                if sliceCacheCount % 1000 == 0 then -- 清除缓存
+                    for k, _ in pairs(sliceCache) do
+                        sliceCache[k] = nil
+                    end
+                    sliceCacheCount = 0
+                end
+                sliceCache[data] = charArray
+                sliceCacheCount = sliceCacheCount + 1
+            end
+        end
+    else
+        charArray = data
+    end
     ---@type protobuf.Slice
-    local self = {
+    return {
         ---@diagnostic disable-next-line: assign-type-mismatch
-        _data = data and (
-            type(data) == "string" and { stringByte(data, 1, len) } or data
-        ),
+        _data = charArray,
         start = data and 1 or nil,
         pos = data and 1 or nil,
         end_pos = len + 1,
         stringValue = nil,
     }
-    return setmetatable(self, ProtobufSlice)
 end
-local NewSlice = ProtobufSlice.new
+
+local NewProtobufSlice = ProtobufSlice.new
 
 M.ProtobufSlice = ProtobufSlice
 
@@ -109,9 +132,9 @@ end
 ---@return protobuf.Slice
 function M.lpb_toslice(value)
     if type(value) == "string" then
-        return NewSlice(value, #value)
+        return NewProtobufSlice(value, #value)
     end
-    return NewSlice(nil, 0)
+    return NewProtobufSlice(nil, 0)
 end
 
 -- 字节数组转换为`string`
