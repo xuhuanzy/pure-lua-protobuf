@@ -1,8 +1,8 @@
-local fileDescriptor = require("pb.fileDescriptor")
+local fileDescriptor = require("pb.file_descriptor")
 
 local State = require("pb.state")
 
-local pb_addslice = require("pb.BytesOperation").pb_addslice
+local pb_addslice = require("pb.bytes_operation").pb_addslice
 
 local ProtobufType = require "pb.type".ProtobufType
 local ProtobufField = require "pb.field".ProtobufField

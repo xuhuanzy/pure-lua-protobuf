@@ -1,30 +1,30 @@
-local util = require("pb.util")
+local pb_field = require("pb.state").pb_field
+local pb_fname = require("pb.state").pb_fname
+local pb_type = require("pb.state").pb_type
+local lpb_lstate = require("pb.state").lpb_lstate
 
-local State = require("pb.state")
-local pb_field = State.pb_field
-local pb_fname = State.pb_fname
-local pb_type = State.pb_type
 
 local lpb_type = require("pb.search").lpb_type
 local argcheck = require("pb.tool").argcheck
 
 
-local BytesOperation = require("pb.BytesOperation")
-local pb_pair = BytesOperation.pb_pair
-local pb_readvarint32 = BytesOperation.pb_readvarint32
-local pb_readvarint64 = BytesOperation.pb_readvarint64
-local pb_skipvalue = BytesOperation.pb_skipvalue
-local pb_readbytes = BytesOperation.pb_readbytes
-local pb_gettag = BytesOperation.pb_gettag
-local pb_gettype = BytesOperation.pb_gettype
-local lpb_readbytes = BytesOperation.lpb_readbytes
-local lpb_pushinteger = BytesOperation.lpb_pushinteger
-local lpb_readtype = BytesOperation.lpb_readtype
+local pb_pair = require("pb.bytes_operation").pb_pair
+local pb_readvarint32 = require("pb.bytes_operation").pb_readvarint32
+local pb_readvarint64 = require("pb.bytes_operation").pb_readvarint64
+local pb_skipvalue = require("pb.bytes_operation").pb_skipvalue
+local pb_readbytes = require("pb.bytes_operation").pb_readbytes
+local pb_gettag = require("pb.bytes_operation").pb_gettag
+local pb_gettype = require("pb.bytes_operation").pb_gettype
+local lpb_readbytes = require("pb.bytes_operation").lpb_readbytes
+local lpb_pushinteger = require("pb.bytes_operation").lpb_pushinteger
+local lpb_readtype = require("pb.bytes_operation").lpb_readtype
 
 local pb_wtypebytype = require("pb.util").pb_wtypebytype
 local pb_wtypename = require("pb.util").pb_wtypename
 local pb_typename = require("pb.util").pb_typename
 local pb_pos = require("pb.util").pb_pos
+local pb_slice = require("pb.util").pb_slice
+
 
 
 local ConstantDefine = require "pb.ConstantDefine"
@@ -67,6 +67,7 @@ local USE_MESSAGE = ConstantDefine.DefFlags.USE_MESSAGE
 local rawget = rawget
 local rawset = rawset
 local tointeger = math.tointeger
+local tonumber = tonumber
 
 
 ---@class Protobuf.Decode
@@ -101,6 +102,22 @@ local function lpbD_checktype(env, field, tag)
 end
 
 
+---@param env lpb_Env 环境
+---@param field Protobuf.Field 字段
+---@param isProto3 boolean 是否为proto3
+---@param isUnsigned boolean 是否为无符号整数
+---@return any value 值
+local function pushDefultFieldNumber(env, field, isProto3, isUnsigned)
+    local value = nil
+    if field.default_value then
+        value = tointeger(field.default_value)
+        if value == nil then return value end
+        value = lpb_pushinteger(value, isUnsigned, env.LS.int64_mode)
+    elseif isProto3 then
+        value = 0
+    end
+    return value
+end
 
 -- 获取默认字段的值
 ---@param env lpb_Env 环境
@@ -111,10 +128,40 @@ end
 local function lpb_pushdeffield(env, field, isProto3)
     if field == nil then return false end
     local typeId = field.type_id
-    local isUnsigned = false -- 是否为无符号整数
     local success = false
     local value = nil
-    if typeId == PB_Tenum then
+
+    if typeId == PB_Tbytes or typeId == PB_Tstring then
+        if field.default_value then
+            value = field.default_value
+        elseif isProto3 then
+            value = ""
+        end
+        success = true
+    elseif typeId == PB_Tint32 or typeId == PB_Tint64 then
+        value = pushDefultFieldNumber(env, field, isProto3, false)
+        if value == nil then return false end
+        success = true
+    elseif typeId == PB_Tbool then
+        if field.default_value then
+            if field.default_value == "true" then
+                value = true
+            elseif field.default_value == "false" then
+                value = false
+            end
+        elseif isProto3 then
+            value = false
+        end
+        success = true
+    elseif typeId == PB_Tdouble or typeId == PB_Tfloat then
+        if field.default_value then
+            value = tonumber(field.default_value)
+            if value == nil then return false end
+        elseif isProto3 then
+            value = 0.0
+        end
+        success = true
+    elseif typeId == PB_Tenum then
         local type = field.type
         if not type then return false end
         ---@diagnostic disable-next-line: cast-local-type
@@ -141,42 +188,13 @@ local function lpb_pushdeffield(env, field, isProto3)
     elseif typeId == PB_Tmessage then
         lpb_pushtypetable(env, field.type)
         success = true
-    elseif typeId == PB_Tbytes or typeId == PB_Tstring then
-        if field.default_value then
-            value = field.default_value
-        elseif isProto3 then
-            value = ""
-        end
-        success = true
-    elseif typeId == PB_Tbool then
-        if field.default_value then
-            if field.default_value == "true" then
-                value = true
-            elseif field.default_value == "false" then
-                value = false
-            end
-        elseif isProto3 then
-            value = false
-        end
-        success = true
-    elseif typeId == PB_Tdouble or typeId == PB_Tfloat then
-        if field.default_value then
-            value = tonumber(field.default_value)
-            if value == nil then return false end
-        elseif isProto3 then
-            value = 0.0
-        end
-        success = true
     elseif typeId == PB_Tuint64 or typeId == PB_Tfixed64 or typeId == PB_Tfixed32 or typeId == PB_Tuint32 then
-        isUnsigned = true
+        value = pushDefultFieldNumber(env, field, isProto3, true)
+        if value == nil then return false end
+        success = true
     else
-        if field.default_value then
-            value = tointeger(field.default_value)
-            if value == nil then return false end
-            value = lpb_pushinteger(value, isUnsigned, env.LS.int64_mode)
-        elseif isProto3 then
-            value = 0
-        end
+        value = pushDefultFieldNumber(env, field, isProto3, false)
+        if value == nil then return false end
         success = true
     end
     return success, value
@@ -350,13 +368,12 @@ lpbD_message = function(env, protobufType, saveTable)
     while true do
         local len, tag = pb_readvarint32(s) ---@cast tag integer
         if len == 0 then break end
-        local field = State.pb_field(protobufType, pb_gettag(tag))
+        local field = pb_field(protobufType, pb_gettag(tag))
         if field == nil then
             pb_skipvalue(s, tag)
         elseif field.type and field.type.is_map then
         elseif field.repeated then
-            local _newSaveTable = lpb_fetchtable(field, env.LS.array_type, saveTable)
-            lpbD_repeated(env, field, tag, _newSaveTable)
+            lpbD_repeated(env, field, tag, lpb_fetchtable(field, env.LS.array_type, saveTable))
         else
             local key = field.name
             if field.oneof_idx and field.oneof_idx ~= 0 then
@@ -376,15 +393,15 @@ end
 ---@param saveTable? table 如果不为空，则将解码后的数据保存到该表中
 ---@return any
 function M.decode(type, data, saveTable)
-    local globalState = State.lpb_lstate()
-    local protobufType = lpb_type(globalState, util.pb_slice(type))
+    local globalState = lpb_lstate()
+    local protobufType = lpb_type(globalState, pb_slice(type))
     argcheck(protobufType ~= nil, "type '%s' does not exists", type)
     ---@cast protobufType Protobuf.Type
     ---@type lpb_Env
     local env = {
         LS = globalState,
         b = {},
-        s = util.pb_slice(data),
+        s = pb_slice(data),
         ---@diagnostic disable-next-line: assign-type-mismatch
         saveTable = saveTable
     }

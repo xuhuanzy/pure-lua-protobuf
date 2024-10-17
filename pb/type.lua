@@ -1,5 +1,6 @@
 local tool = require "pb.tool"
 local meta = tool.meta
+local setmetatable = setmetatable
 
 ---@class Protobuf.OneofEntry
 ---@field name protobuf.NameValue
@@ -41,17 +42,17 @@ function ProtobufType.new(name)
     local self = {
         name = name,
         basename = getBasename(name),
-        ---@diagnostic disable-next-line: missing-fields
         field_names = {},
-        ---@diagnostic disable-next-line: missing-fields
         field_tags = {},
-        ---@diagnostic disable-next-line: missing-fields
         oneof_index = {},
-        ---@diagnostic disable-next-line: missing-fields
         field_sort = {},
         field_count = 0,
         oneof_count = 0,
         oneof_field = 0,
+        is_enum = false,
+        is_map = false,
+        is_proto3 = false,
+        is_dead = false,
     }
     return setmetatable(self, ProtobufType)
 end

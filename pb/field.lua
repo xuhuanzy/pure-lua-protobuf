@@ -1,5 +1,6 @@
 local tool = require "pb.tool"
 local meta = tool.meta
+local setmetatable = setmetatable
 
 ---@alias protobuf.NameValue string
 
@@ -69,12 +70,17 @@ local ProtobufField = meta("Protobuf.Field")
 ---@return Protobuf.Field
 function ProtobufField.new(name, type, number)
     ---@type Protobuf.Field
----@diagnostic disable-next-line: missing-fields
     local self = {
         name = name,
         type = type,
         number = number,
-
+        oneof_idx = 0,
+        type_id = 0,
+        repeated = false,
+        packed = false,
+        scalar = false,
+        default_value = nil,
+        sort_index = 0,
     }
     return setmetatable(self, ProtobufField)
 end

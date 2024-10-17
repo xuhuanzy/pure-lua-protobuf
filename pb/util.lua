@@ -40,37 +40,41 @@ local PB_TWIRECOUNT = ConstantDefine.pb_WireType.PB_TWIRECOUNT
 local M = {}
 
 
----@param s string?
----@return pb_Slice
-function M.pb_slice(s)
-    if s then
-        return M.pb_lslice(s, #s)
-    else
-        return M.pb_lslice(nil, 0)
-    end
-end
-
 ---@param s? string|Protobuf.Char[]
 ---@param len integer
 ---@return pb_Slice
-function M.pb_lslice(s, len)
+local function pb_lslice(s, len)
     ---@type pb_Slice
     return {
         ---@diagnostic disable-next-line: assign-type-mismatch
         _data = s and (
-            type(s) == "string" and {stringByte(s, 1, len)} or s
+            type(s) == "string" and { stringByte(s, 1, len) } or s
         ),
         pos = s and 1 or nil,
         start = s and 1 or nil,
         end_pos = len + 1
     }
 end
+M.pb_lslice = pb_lslice
+
+
+---@param s string?
+---@return pb_Slice
+local function pb_slice(s)
+    if s then
+        return pb_lslice(s, #s)
+    else
+        return pb_lslice(nil, 0)
+    end
+end
+M.pb_slice = pb_slice
 
 ---@param s pb_Slice
 ---@return integer
-function M.pb_len(s)
+local function pb_len(s)
     return s.end_pos - s.pos
 end
+M.pb_len = pb_len
 
 
 ---@param s pb_Slice
@@ -83,7 +87,9 @@ end
 ---@param s pb_Slice
 ---@return string?
 function M.getSliceString(s)
-    return s._data and stringChar(tableUnpack(s._data, s.pos, s.end_pos - 1))
+    if not s._data then return nil end
+    s.stringValue = s.stringValue or stringChar(tableUnpack(s._data, s.pos, s.end_pos - 1))
+    return s.stringValue
 end
 
 -- 复制`Slice`, 返回`.pos`到`.end_pos`的数据
@@ -91,17 +97,16 @@ end
 ---@return pb_Slice
 function M.sliceCopy(s)
     local newData = tablePack(tableUnpack(s._data, s.pos, s.end_pos - 1))
-    return M.pb_lslice(newData, M.pb_len(s))
+    return pb_lslice(newData, pb_len(s))
 end
-
 
 ---@param value any
 ---@return pb_Slice
 function M.lpb_toslice(value)
     if type(value) == "string" then
-        return M.pb_lslice(value, #value)
+        return pb_lslice(value, #value)
     end
-    return M.pb_slice(nil)
+    return pb_slice(nil)
 end
 
 -- 字节数组转换为`string`
@@ -115,11 +120,7 @@ end
 ---@param type integer
 ---@return integer
 function M.pb_wtypebytype(type)
-    if type == PB_Tdouble then
-        return PB_T64BIT
-    elseif type == PB_Tfloat then
-        return PB_T32BIT
-    elseif type == PB_Tint64 then
+    if type == PB_Tint64 then
         return PB_TVARINT
     elseif type == PB_Tuint64 then
         return PB_TVARINT
@@ -139,6 +140,10 @@ function M.pb_wtypebytype(type)
         return PB_TBYTES
     elseif type == PB_Tuint32 then
         return PB_TVARINT
+    elseif type == PB_Tdouble then
+        return PB_T64BIT
+    elseif type == PB_Tfloat then
+        return PB_T32BIT
     elseif type == PB_Tenum then
         return PB_TVARINT
     elseif type == PB_Tsfixed32 then

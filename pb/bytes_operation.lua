@@ -147,6 +147,7 @@ local function pb_addslice(b, s)
     return len
 end
 
+-- 添加字节
 ---@param b Protobuf.Char[]
 ---@param s pb_Slice
 ---@return integer
@@ -307,21 +308,23 @@ end
 ---@return integer @读取到的字节数
 ---@return integer? @读取到的值
 local function pb_readvarint32(s)
-    ---@type integer?
-    local ret_val = nil
-    local ret_num = 0
-
     --  检查是否已经到达切片的末尾
     if s.pos >= s.end_pos then
         return 0
     end
+    ---@type integer?
+    local ret_val = nil
+    local ret_num = 0
+
+    local _data = s._data
+
     -- 如果最高位为0，说明该字节是最后一个字节，直接返回
-    if (s._data[s.pos] & 0x80) == 0 then
-        ret_val = s._data[s.pos]
+    if (_data[s.pos] & 0x80) == 0 then
+        ret_val = _data[s.pos]
         s.pos = s.pos + 1
         return 1, ret_val
     end
-    if pb_len(s) >= 10 or (s._data[s.end_pos] & 0x80) == 0 then
+    if pb_len(s) >= 10 or (_data[s.end_pos] & 0x80) == 0 then
         return pb_readvarint32_fallback(s)
     end
 
@@ -343,13 +346,14 @@ local function pb_readvarint64(s)
     end
     ---@type integer?
     local ret_val = nil
+    local _data = s._data
     -- 如果最高位为0，说明该字节是最后一个字节，直接返回
-    if (s._data[s.pos] & 0x80) == 0 then
-        ret_val = s._data[s.pos]
+    if (_data[s.pos] & 0x80) == 0 then
+        ret_val = _data[s.pos]
         s.pos = s.pos + 1
         return 1, ret_val
     end
-    if pb_len(s) >= 10 or (s._data[s.end_pos - 1] & 0x80) == 0 then
+    if pb_len(s) >= 10 or (_data[s.end_pos - 1] & 0x80) == 0 then
         return pb_readvarint64_fallback(s)
     end
     return pb_readvarint_slow(s)
@@ -364,10 +368,11 @@ local function pb_readfixed32(s)
     if pos + 4 > s.end_pos then
         return 0
     end
+    local _data = s._data
     local n = 0
     for i = 3, 0, -1 do
         n = n << 8
-        n = n | (s._data[pos + i] & 0xFF)
+        n = n | (_data[pos + i] & 0xFF)
     end
     s.pos = pos + 4
     return 4, n
@@ -383,9 +388,10 @@ local function pb_readfixed64(s)
         return 0
     end
     local n = 0
+    local _data = s._data
     for i = 7, 0, -1 do
         n = n << 8
-        n = n | (s._data[pos + i] & 0xFF)
+        n = n | (_data[pos + i] & 0xFF)
     end
     s.pos = pos + 8
     return 8, n
@@ -419,7 +425,8 @@ end
 local function pb_skipvarint(s)
     local pos = s.pos
     local op = pos
-    while pos < s.end_pos and (s._data[pos] & 0x80) ~= 0 do
+    local _data = s._data
+    while pos < s.end_pos and (_data[pos] & 0x80) ~= 0 do
         pos = pos + 1
     end
     if pos >= s.end_pos then
@@ -508,15 +515,6 @@ pb_skipvalue = function(s, tag)
     return ret
 end
 
---[[ PB_API size_t pb_readslice(pb_Slice *s, size_t len, pb_Slice *pv) {
-    if (pb_len(*s) < len)
-        return 0;
-    pv->start = s->start;
-    pv->p = s->p;
-    pv->end = s->p + len;
-    s->p = pv->end;
-    return len;
-} ]]
 
 -- 读取指定长度的字节，并返回读取到的字节数
 ---@param s pb_Slice
@@ -566,12 +564,119 @@ local function lpb_pushinteger(value, isUnsigned, mode)
     end
 end
 
+local switchReadType = {
+    [PB_Tbool] = function(env, fieldType, s)
+        local len, value = nil, nil
+        len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return value ~= 0
+    end,
+
+    [PB_Tenum] = function(env, fieldType, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return value
+    end,
+
+    [PB_Tint32] = function(env, fieldType, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, false, env.LS.int64_mode)
+    end,
+
+    [PB_Tuint32] = function(env, fieldType, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, true, env.LS.int64_mode)
+    end,
+
+    [PB_Tsint32] = function(env, fieldType, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(pb_decode_sint32(value), false, env.LS.int64_mode)
+    end,
+
+    [PB_Tint64] = function(env, fieldType, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, false, env.LS.int64_mode)
+    end,
+
+    [PB_Tuint64] = function(env, fieldType, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, true, env.LS.int64_mode)
+    end,
+
+    [PB_Tsint64] = function(env, fieldType, s)
+        local len, value = pb_readvarint64(s) ---@cast value integer
+        if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(pb_decode_sint64(value), false, env.LS.int64_mode)
+    end,
+
+    [PB_Tfloat] = function(env, fieldType, s)
+        local len, value = pb_readfixed32(s) ---@cast value integer
+        if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
+        return pb_decode_float(value)
+    end,
+
+    [PB_Tfixed32] = function(env, fieldType, s)
+        local len, value = pb_readfixed32(s) ---@cast value integer
+        if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, true, env.LS.int64_mode)
+    end,
+
+    [PB_Tsfixed32] = function(env, fieldType, s)
+        local len, value = pb_readfixed32(s) ---@cast value integer
+        if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, false, env.LS.int64_mode)
+    end,
+
+    [PB_Tdouble] = function(env, fieldType, s)
+        local len, value = pb_readfixed64(s) ---@cast value integer
+        if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
+        return pb_decode_double(value)
+    end,
+
+    [PB_Tfixed64] = function(env, fieldType, s)
+        local len, value = pb_readfixed64(s) ---@cast value integer
+        if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, true, env.LS.int64_mode)
+    end,
+
+    [PB_Tsfixed64] = function(env, fieldType, s)
+        local len, value = pb_readfixed64(s) ---@cast value integer
+        if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
+        return lpb_pushinteger(value, false, env.LS.int64_mode)
+    end,
+
+    [PB_Tbytes] = function(env, fieldType, s)
+        local targetSlice = {}
+        lpb_readbytes(s, targetSlice)
+        return getSliceString(targetSlice)
+    end,
+
+    [PB_Tstring] = function(env, fieldType, s)
+        local targetSlice = {}
+        lpb_readbytes(s, targetSlice)
+        return getSliceString(targetSlice)
+    end,
+
+    [PB_Tmessage] = function(env, fieldType, s)
+        local targetSlice = {}
+        lpb_readbytes(s, targetSlice)
+        return getSliceString(targetSlice)
+    end,
+}
+
 
 ---@param env lpb_Env
 ---@param fieldType integer
 ---@param s pb_Slice
 ---@return number|string|boolean|nil value 读取到的值
 local function lpb_readtype(env, fieldType, s)
+    return switchReadType[fieldType](env, fieldType, s)
+--[[ 
     local len, value = nil, nil
     if fieldType == PB_Tbool or fieldType == PB_Tenum or fieldType == PB_Tint32 or fieldType == PB_Tuint32 or fieldType == PB_Tsint32 or fieldType == PB_Tint64 or fieldType == PB_Tuint64 or fieldType == PB_Tsint64 then
         len, value = pb_readvarint64(s)
@@ -628,7 +733,7 @@ local function lpb_readtype(env, fieldType, s)
         return getSliceString(targetSlice)
     else
         error("unknown type " .. pb_typename(fieldType) .. " (" .. fieldType .. ")")
-    end
+    end ]]
 end
 
 

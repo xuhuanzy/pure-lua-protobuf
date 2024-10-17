@@ -1,6 +1,8 @@
 local type = type
 local stringPack = string.pack
 local stringUnpack = string.unpack
+local tostring = tostring
+local tonumber = tonumber
 
 
 -- 工具类, 不依赖 protobuf 的定义
@@ -36,6 +38,13 @@ end
 
 --#region 类型检查
 
+-- 抛出错误
+---@param fmt string 格式化字符串
+---@param ... any 参数
+function Tool.throw(fmt, ...)
+    error(string.format(fmt, ...))
+end
+
 ---检查参数
 ---@param cond boolean 条件
 ---@param fmt string 格式化字符串
@@ -47,8 +56,9 @@ local function argcheck(cond, fmt, ...)
 end
 Tool.argcheck = argcheck
 
----@param field Protobuf.Field
----@param data any
+-- 检查值是否为表
+---@param field Protobuf.Field 字段, 用于定位
+---@param data any 值
 function Tool.checkTable(field, data)
     argcheck(
         type(data) == "table",

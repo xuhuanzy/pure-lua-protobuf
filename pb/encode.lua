@@ -6,19 +6,29 @@ local tryGetName = require("pb.names").tryGetName
 
 local argcheck = require("pb.tool").argcheck
 local checkTable = require("pb.tool").checkTable
+local throw = require("pb.tool").throw
+
 local pb_encode_sint32 = require("pb.tool").pb_encode_sint32
 local expandsig32To64 = require("pb.tool").expandsig32To64
 local pb_encode_sint64 = require("pb.tool").pb_encode_sint64
 local lpb_tointegerx = require("pb.tool").lpb_tointegerx
 local pb_encode_double = require("pb.tool").pb_encode_double
 local pb_encode_float = require("pb.tool").pb_encode_float
-local BytesOperation = require("pb.BytesOperation")
-local pb_addvarint32 = BytesOperation.pb_addvarint32
-local pb_addvarint64 = BytesOperation.pb_addvarint64
-local pb_pair = BytesOperation.pb_pair
 
-local util = require("pb.util")
-local pb_wtypebytype = util.pb_wtypebytype
+local pb_addvarint32 = require("pb.bytes_operation").pb_addvarint32
+local pb_addvarint64 = require("pb.bytes_operation").pb_addvarint64
+local pb_addbytes = require("pb.bytes_operation").pb_addbytes
+local pb_addfixed64 = require("pb.bytes_operation").pb_addfixed64
+local pb_addfixed32 = require("pb.bytes_operation").pb_addfixed32
+local pb_pair = require("pb.bytes_operation").pb_pair
+local lpb_addlength = require("pb.bytes_operation").lpb_addlength
+
+local pb_wtypebytype = require("pb.util").pb_wtypebytype
+local lpb_toslice = require("pb.util").lpb_toslice
+local pb_len = require("pb.util").pb_len
+local pb_typename = require("pb.util").pb_typename
+local lpb_expected = require("pb.util").lpb_expected
+local pb_slice = require("pb.util").pb_slice
 
 local lpb_type = require("pb.search").lpb_type
 
@@ -49,17 +59,19 @@ local PB_Tgroup = ConstantDefine.pb_FieldType.PB_Tgroup
 
 local tableInsert = table.insert
 local tableRemove = table.remove
-local ipairs = ipairs
-local pairs = pairs
-local error = error
-local assert = assert
-local type = type
-local tonumber = tonumber
+local ipairs      = ipairs
+local pairs       = pairs
+local error       = error
+local assert      = assert
+local type        = type
+local tonumber    = tonumber
+local stringChar  = string.char
+local tableUnpack = table.unpack
 
 --#endregion
 
 ---@class Protobuf.Encode
-local M = {}
+local M           = {}
 
 --#region 声明
 
@@ -96,91 +108,91 @@ function M.lpb_addtype(env, type, value, exist)
     local hasData = true
     local hasResult = false
     if type == PB_Tbool then
-        len = BytesOperation.pb_addvarint32(b, (not not value) and 1 or 0)
+        len = pb_addvarint32(b, (not not value) and 1 or 0)
         hasResult = true
     elseif type == PB_Tdouble then
         receivedValue = tonumber(value)
         if receivedValue then
-            len = BytesOperation.pb_addfixed64(b, pb_encode_double(receivedValue))
+            len = pb_addfixed64(b, pb_encode_double(receivedValue))
             hasResult = true
             hasData = receivedValue ~= 0.0
         end
     elseif type == PB_Tfloat then
         receivedValue = tonumber(value)
         if receivedValue then
-            len = BytesOperation.pb_addfixed32(b, pb_encode_float(receivedValue))
+            len = pb_addfixed32(b, pb_encode_float(receivedValue))
             hasResult = true
             hasData = receivedValue ~= 0.0
         end
     elseif type == PB_Tfixed32 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addfixed32(b, receivedValue)
+            len = pb_addfixed32(b, receivedValue)
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tsfixed32 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addfixed32(b, receivedValue)
+            len = pb_addfixed32(b, receivedValue)
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tint32 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addvarint64(b, expandsig32To64(receivedValue))
+            len = pb_addvarint64(b, expandsig32To64(receivedValue))
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tuint32 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addvarint32(b, receivedValue)
+            len = pb_addvarint32(b, receivedValue)
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tsint32 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addvarint32(b, pb_encode_sint32(receivedValue))
+            len = pb_addvarint32(b, pb_encode_sint32(receivedValue))
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tfixed64 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addfixed64(b, receivedValue)
+            len = pb_addfixed64(b, receivedValue)
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tsfixed64 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addfixed64(b, receivedValue)
+            len = pb_addfixed64(b, receivedValue)
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tint64 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addvarint64(b, receivedValue)
+            len = pb_addvarint64(b, receivedValue)
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tuint64 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addvarint64(b, receivedValue)
+            len = pb_addvarint64(b, receivedValue)
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tsint64 then
         receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
-            len = BytesOperation.pb_addvarint64(b, pb_encode_sint64(receivedValue))
+            len = pb_addvarint64(b, pb_encode_sint64(receivedValue))
             hasData = receivedValue ~= 0
         end
     elseif type == PB_Tbytes or type == PB_Tstring then
-        receivedValue = util.lpb_toslice(value)
+        receivedValue = lpb_toslice(value)
         hasResult = receivedValue.pos ~= nil
         if hasResult then
-            len = BytesOperation.pb_addbytes(b, receivedValue)
-            hasData = util.pb_len(receivedValue) > 0
+            len = pb_addbytes(b, receivedValue)
+            hasData = pb_len(receivedValue) > 0
         end
     else
-        error("unknown type " .. util.pb_typename(type))
+        error("unknown type " .. pb_typename(type))
     end
     if exist then exist[1] = (hasResult and hasData) end
     return hasResult and len or 0
@@ -242,12 +254,13 @@ local function lpbE_field(env, field, value, exist)
         if exist then
             exist[1] = len < #env.b
         end
-        return BytesOperation.lpb_addlength(env.b, len, 1)
+        return lpb_addlength(env.b, len, 1)
     else
         local len = M.lpb_addtype(env, field.type_id, value, exist)
-        argcheck(len > 0, "expected %s for field '%s', got %s", util.lpb_expected(field.type_id), field.name, type(value))
+        if not (len > 0) then
+            throw("expected %s for field '%s', got %s", lpb_expected(field.type_id), field.name, type(value))
+        end
         return len
-        ---@diagnostic disable-next-line: missing-return
     end
 end
 
@@ -302,7 +315,7 @@ local function lpbE_map(env, field, map)
         -- 写入值
         lpbE_tagfield(env, vf, value, true)
         -- 写入长度
-        BytesOperation.lpb_addlength(env.b, len, 1)
+        lpb_addlength(env.b, len, 1)
     end
 end
 
@@ -322,7 +335,7 @@ local function lpbE_repeated(env, field, data)
         for _, value in ipairs(data) do
             lpbE_field(env, field, value, nil)
         end
-        BytesOperation.lpb_addlength(env.b, len, 1)
+        lpb_addlength(env.b, len, 1)
     else
         for _, value in ipairs(data) do
             lpbE_tagfield(env, field, value, false)
@@ -365,8 +378,10 @@ end
 ---@return string
 function M.encode(type, data)
     local globalState = State.lpb_lstate()
-    local protobufType = lpb_type(globalState, util.pb_slice(type))
-    assert(protobufType, "unknown type: " .. type)
+    local protobufType = lpb_type(globalState, pb_slice(type))
+    if not protobufType then
+        error("unknown type: " .. type)
+    end
     ---@type lpb_Env
     local env = {
         LS = globalState,
@@ -377,7 +392,7 @@ function M.encode(type, data)
         saveTable = nil
     }
     encode(env, protobufType, data)
-    return string.char(table.unpack(env.b))
+    return stringChar(tableUnpack(env.b))
 end
 
 return M

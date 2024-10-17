@@ -15,8 +15,6 @@ local function useName(nameEntry)
 end
 
 
-
-
 ---@param state pb_State
 ---@param name string
 ---@return protobuf.NameEntry

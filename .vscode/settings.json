@@ -2,7 +2,8 @@
     "Lua.workspace.preloadFileSize": 5000,
     "Lua.runtime.pathStrict": true,
     "Lua.runtime.special": {
-        "include": "require"
+        "include": "require",
+        "argcheck": "assert"
     },
     "Lua.hover.expandAlias": false,
     "Lua.diagnostics.groupFileStatus": {
@@ -26,4 +27,5 @@
     "Lua.diagnostics.globals": [
         "dump"
     ],
+    "Lua.language.completeAnnotation": false,
 }
