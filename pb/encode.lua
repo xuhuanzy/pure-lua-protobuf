@@ -100,106 +100,150 @@ local encode
 
 
 
+---@type {[pb_FieldType]: fun(env: lpb_Env, type: integer, value: any, exist: Protobuf._TempVar.Exist): integer}
+local switchAddType
+switchAddType = {
+    [PB_Tbool] = function(env, type, value, exist)
+        if exist then exist[1] = true end
+        return pb_addvarint32(env.b, (not not value) and 1 or 0)
+    end,
+
+    [PB_Tdouble] = function(env, type, value, exist)
+        local receivedValue = tonumber(value)
+        if receivedValue then
+            if exist then exist[1] = receivedValue ~= 0.0 end
+            return pb_addfixed64(env.b, pb_encode_double(receivedValue))
+        end
+        return 0
+    end,
+
+    [PB_Tfloat] = function(env, type, value, exist)
+        local receivedValue = tonumber(value)
+        if receivedValue then
+            if exist then exist[1] = receivedValue ~= 0.0 end
+            return pb_addfixed32(env.b, pb_encode_float(receivedValue))
+        end
+        return 0
+    end,
+
+    [PB_Tfixed32] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addfixed32(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tsfixed32] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addfixed32(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tint32] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addvarint64(env.b, expandsig32To64(receivedValue))
+        end
+        return 0
+    end,
+
+    [PB_Tuint32] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addvarint32(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tsint32] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addvarint32(env.b, pb_encode_sint32(receivedValue))
+        end
+        return 0
+    end,
+
+    [PB_Tfixed64] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addfixed64(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tsfixed64] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addfixed64(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tint64] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addvarint64(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tuint64] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addvarint64(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tsint64] = function(env, type, value, exist)
+        local receivedValue, hasResult = lpb_tointegerx(value)
+        if hasResult then
+            if exist then exist[1] = (receivedValue ~= 0) end
+            return pb_addvarint64(env.b, pb_encode_sint64(receivedValue))
+        end
+        return 0
+    end,
+
+    [PB_Tbytes] = function(env, type, value, exist)
+        local receivedValue = lpb_toslice(value)
+        if receivedValue.pos then
+            if exist then exist[1] = (pb_len(receivedValue) > 0) end
+            return pb_addbytes(env.b, receivedValue)
+        end
+        return 0
+    end,
+
+    [PB_Tstring] = function(env, type, value, exist)
+        local receivedValue = lpb_toslice(value)
+        if receivedValue.pos then
+            if exist then exist[1] = (pb_len(receivedValue) > 0) end
+            return pb_addbytes(env.b, receivedValue)
+        end
+        return 0
+    end,
+}
+
+
+
 ---@param env lpb_Env
 ---@param type integer
 ---@param value any
 ---@param exist? Protobuf._TempVar.Exist 是否存在
 ---@return integer
-function M.lpb_addtype(env, type, value, exist)
-    local b = env.b
-    local len = 0
-    local receivedValue = nil
-    local hasData = true
-    local hasResult = false
-    if type == PB_Tbool then
-        len = pb_addvarint32(b, (not not value) and 1 or 0)
-        hasResult = true
-    elseif type == PB_Tdouble then
-        receivedValue = tonumber(value)
-        if receivedValue then
-            len = pb_addfixed64(b, pb_encode_double(receivedValue))
-            hasResult = true
-            hasData = receivedValue ~= 0.0
-        end
-    elseif type == PB_Tfloat then
-        receivedValue = tonumber(value)
-        if receivedValue then
-            len = pb_addfixed32(b, pb_encode_float(receivedValue))
-            hasResult = true
-            hasData = receivedValue ~= 0.0
-        end
-    elseif type == PB_Tfixed32 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addfixed32(b, receivedValue)
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tsfixed32 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addfixed32(b, receivedValue)
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tint32 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addvarint64(b, expandsig32To64(receivedValue))
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tuint32 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addvarint32(b, receivedValue)
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tsint32 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addvarint32(b, pb_encode_sint32(receivedValue))
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tfixed64 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addfixed64(b, receivedValue)
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tsfixed64 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addfixed64(b, receivedValue)
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tint64 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addvarint64(b, receivedValue)
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tuint64 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addvarint64(b, receivedValue)
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tsint64 then
-        receivedValue, hasResult = lpb_tointegerx(value)
-        if hasResult then
-            len = pb_addvarint64(b, pb_encode_sint64(receivedValue))
-            hasData = receivedValue ~= 0
-        end
-    elseif type == PB_Tbytes or type == PB_Tstring then
-        receivedValue = lpb_toslice(value)
-        hasResult = receivedValue.pos ~= nil
-        if hasResult then
-            len = pb_addbytes(b, receivedValue)
-            hasData = pb_len(receivedValue) > 0
-        end
-    else
-        error("unknown type " .. pb_typename(type))
-    end
-    if exist then exist[1] = (hasResult and hasData) end
-    return hasResult and len or 0
+local function lpb_addtype(env, type, value, exist)
+    return switchAddType[type](env, type, value, exist)
 end
 
 ---@param env lpb_Env
@@ -260,7 +304,7 @@ local function lpbE_field(env, field, value, exist)
         end
         return lpb_addlength(env.b, len, 1)
     else
-        local len = M.lpb_addtype(env, field.type_id, value, exist)
+        local len = lpb_addtype(env, field.type_id, value, exist)
         if not (len > 0) then
             throw("expected %s for field '%s', got %s", lpb_expected(field.type_id), field.name, type(value))
         end
