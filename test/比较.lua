@@ -1,8 +1,14 @@
+local dump = require("tools.utility").dump
+local TimerTest = require("test.testUtils").TimerTest
 local protoOut = require("pb.protoOut")
+local pb = protoOut
 local protoc = protoOut
 local _pb_encode = require("pb.encode").encode
 local _pb_decode = require("pb.decode").decode
-local TimerTest = require("test.testUtils").TimerTest
+
+local LibDeflate = require("msgpack.LibDeflate")
+local LCompressDeflate = LibDeflate.CompressDeflate
+local LDecompressDeflate = LibDeflate.DecompressDeflate
 
 assert(protoc:load [[
 syntax = "proto3";
@@ -42,26 +48,27 @@ local data = {
     phone    = "12312341234",
 }
 
-local bytes = assert(_pb_encode("Person", data))
+do
+    local bytes = assert(_pb_encode("Person", data))
+    TimerTest("pb encode", "万", function()
+        _pb_encode("Person", data)
+    end)
 
+    TimerTest("pb decode", "万", function()
+        _pb_decode("Person", bytes)
+    end)
+end
 
-TimerTest("pb encode", "万", function()
-    _pb_encode("Person", data)
-end)
+do
 
-TimerTest("pb decode", "万", function()
-    _pb_decode("Person", bytes)
-end)
+    local msgpackPack = require('msgpack.msgpack').pack
+    local msgpackUnpack = require('msgpack.msgpack').unpack
 
-
-
-local msgpackPack = require('msgpack.msgpack').pack
-local bytes = msgpackPack(data)
-TimerTest("msgpack encode", "万", function()
-    msgpackPack(data)
-end)
-
-local msgpackUnpack = require('msgpack.msgpack').unpack
-TimerTest("msgpack decode", "万", function()
-    msgpackUnpack(bytes)
-end)
+    local bytes = LCompressDeflate(LibDeflate, msgpackPack(data))
+    TimerTest("msgpack encode", 1000, function()
+        LCompressDeflate(LibDeflate, msgpackPack(data))
+    end)
+    TimerTest("msgpack decode", 1000, function()
+        msgpackUnpack(LDecompressDeflate(LibDeflate, bytes))
+    end)
+end
