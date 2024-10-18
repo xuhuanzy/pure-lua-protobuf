@@ -402,7 +402,7 @@ local function lpb_encode_onefield(env, protobufType, value, field)
         lpbE_repeated(env, field, value)
     elseif not field.type or not field.type.is_dead then
         lpbE_tagfield(env, field, value,
-            protobufType.is_proto3 and (field.oneof_idx and field.oneof_idx >= 1) and field.type_id ~= PB_Tmessage
+            protobufType.is_proto3 and not (field.oneof_idx >= 1) and field.type_id ~= PB_Tmessage
         )
     end
 end
