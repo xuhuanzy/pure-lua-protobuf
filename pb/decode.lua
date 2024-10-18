@@ -69,6 +69,7 @@ local tointeger = math.tointeger
 local tonumber = tonumber
 local pairs = pairs
 local ipairs = ipairs
+local setmetatable = setmetatable
 
 
 ---@class Protobuf.Decode
@@ -273,6 +274,18 @@ local function lpb_setdeffields(env, type, flags, saveTable)
     end
 end
 
+-- 获取指定类型默认的元表, 如果未设置, 则设置默认值
+---@param env lpb_Env
+---@param type Protobuf.Type
+---@return table
+local function getDefaultMetaTable(env, type)
+    local defaultMetaTable = env.LS.defaultMetaTable
+    if not defaultMetaTable[type] then
+        defaultMetaTable[type] = {}
+        lpb_setdeffields(env, type, USE_FIELD, defaultMetaTable[type])
+    end
+    return defaultMetaTable[type]
+end
 
 
 ---@param env lpb_Env
@@ -289,7 +302,7 @@ lpb_pushtypetable = function(env, type)
         lpb_setdeffields(env, type, (USE_FIELD | USE_REPEAT | USE_MESSAGE), newTable)
     elseif mode == LPB_METADEF then
         lpb_setdeffields(env, type, (USE_REPEAT | USE_MESSAGE), newTable)
-        --TODO 需要设置元表
+        setmetatable(newTable, getDefaultMetaTable(env, type))
     else
         if LS.decode_default_array or LS.decode_default_message then
             lpb_setdeffields(env, type, (USE_REPEAT | USE_MESSAGE), newTable)

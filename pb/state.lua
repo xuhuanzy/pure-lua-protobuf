@@ -10,7 +10,7 @@ local M = {}
 ---@field local_state pb_State
 ---@field array_type Protobuf.Type 数组类型
 ---@field map_type Protobuf.Type 映射类型
----@field defs_index integer 
+---@field defaultMetaTable {[Protobuf.Type]: table} {类型: 默认的元表}
 ---@field enc_hooks_index integer
 ---@field dec_hooks_index integer
 ---@field use_dec_hooks boolean 使用解码钩子
@@ -35,23 +35,24 @@ function M.lpb_lstate()
     if not CurrentState then
         ---@diagnostic disable-next-line: missing-fields
         CurrentState = {
-            encode_mode = 0,
+            encode_mode = 2,
+            defaultMetaTable = {},
+            enc_hooks_index = -2,
+            dec_hooks_index = -2,
+            ---@diagnostic disable-next-line: missing-fields
+            array_type = {
+                is_dead = true,
+            },
+            ---@diagnostic disable-next-line: missing-fields
+            map_type = {
+                is_dead = true,
+            },
+            local_state = {
+                types = {},
+                nametable = {},
+            },
         }
-        ---@diagnostic disable-next-line: missing-fields
-        CurrentState.array_type = {
-            is_dead = true,
-        }
-        ---@diagnostic disable-next-line: missing-fields
-        CurrentState.map_type = {
-            is_dead = true,
-        }
-        CurrentState.defs_index = -2      -- LUA_NOREF
-        CurrentState.enc_hooks_index = -2 -- LUA_NOREF
-        CurrentState.dec_hooks_index = -2 -- LUA_NOREF
-        CurrentState.local_state = {
-            types = {},
-            nametable = {},
-        }
+
         CurrentState.state = CurrentState.local_state
     end
     return CurrentState
@@ -71,6 +72,7 @@ function M.pb_type(state, tname)
     end
     return nil
 end
+
 local pb_type = M.pb_type
 
 -- 从类型中搜索字段
