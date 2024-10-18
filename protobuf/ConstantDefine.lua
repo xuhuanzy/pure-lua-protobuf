@@ -88,9 +88,9 @@ do
 end
 
 
--- 编码模式
----@enum protobuf.EncodeMode
-local EncodeMode = {
+-- 解码模式
+---@enum protobuf.DecodeMode
+local DecodeMode = {
     -- 默认值, 会自动判断是否使用默认字段. </br>
     -- 对于`proto3`, 默认复制默认值到解码目标表中来, 对于其他则忽略默认值设置
     LPB_DEFDEF = 0,
@@ -129,7 +129,7 @@ M.PB_MAX_SIZET = 0xFFFFFFFF - 100
 
 M.pb_WireType = pb_WireType
 M.pb_FieldType = pb_FieldType
-M.EncodeMode = EncodeMode
+M.DecodeMode = DecodeMode
 M.DefFlags = DefFlags
 M.Int64Mode = Int64Mode
 M.PB_OK = 0

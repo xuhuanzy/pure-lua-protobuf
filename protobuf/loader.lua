@@ -233,7 +233,7 @@ function M.Load(data)
     local config = ProtobufState.getConfig()
     local s = NewProtobufSlice(data)
     pb_load(config.localDb, s)
-    ProtobufState.GlobalState = config.localDb
+    ProtobufState.GlobalDb = config.localDb
     return true, s.pos - s.start + 1
 end
 

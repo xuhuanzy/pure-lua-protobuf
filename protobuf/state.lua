@@ -16,10 +16,10 @@ local M = {}
 ---@field useDecodeHooks boolean 使用解码钩子
 ---@field useEncodeHooks boolean 使用编码钩子
 ---@field enumAsValue boolean 解码枚举时, `false`设置值为枚举名, `true`设置为枚举值数字
----@field encodeMode protobuf.EncodeMode 编码模式
+---@field decodeMode protobuf.DecodeMode 解码模式
 ---@field int64Mode protobuf.Int64Mode 64位整数模式
 ---@field encodeDefaultValues boolean 默认值也参与编码
----@field decodeDefaultArray boolean 对于数组，将空值解码为空表或`nil`(默认为`nil`)
+---@field decodeDefaultArray boolean 对于数组, 将空值解码为空表或`nil`(默认为`nil`)
 ---@field decodeDefaultMessage boolean 将空子消息解析成默认值表
 
 -- 类型数据库
@@ -30,8 +30,8 @@ local M = {}
 ---@type protobuf.GlobalConfig  当前配置
 local CurrentConfig = nil
 
----@type protobuf.TypeDatabase  全局数据库状态
-M.GlobalState = nil
+---@type protobuf.TypeDatabase 全局数据库, 会在`Loader`中自动设置
+M.GlobalDb = nil
 
 -- 获取配置
 ---@return protobuf.GlobalConfig
@@ -39,7 +39,7 @@ function M.getConfig()
     if not CurrentConfig then
         ---@type protobuf.GlobalConfig
         CurrentConfig = {
-            encodeMode = ConstantDefine.EncodeMode.LPB_DEFDEF,
+            decodeMode = ConstantDefine.DecodeMode.LPB_DEFDEF,
             defaultMetaTable = {},
             ---@diagnostic disable-next-line: missing-fields
             arrayType = {
@@ -68,6 +68,42 @@ function M.getConfig()
     end
     return CurrentConfig
 end
+
+--#region 配置
+
+---@alias protobuf.GlobalConfigOption
+---| "autoDefaultValues" 解码模式, 自动选择默认值设置, 对于`proto3`为`useDefaultValues`, 其他为`noDefaultValues`
+---| "useDefaultValues" 解码模式, 将默认值表复制到解码目标表中来
+---| "noDefaultValues" 解码模式, 将默认值表复制到解码目标表中来
+---| "useDefaultMetatable" 解码模式, 将默认值表作为解码目标表的元表使用
+---| "enumAsName" 解码枚举的时候, 设置值为枚举名(默认)
+---| "enumAsValue" 解码枚举的时候, 设置值为枚举值数字
+
+
+
+---@param opt protobuf.GlobalConfigOption 选项
+function M.setOption(opt)
+    ---@cast opt protobuf.GlobalConfigOption
+    local config = M.getConfig()
+    if not config then return end
+    if opt == "autoDefaultValues" then
+        config.decodeMode = ConstantDefine.DecodeMode.LPB_DEFDEF
+    elseif opt == "useDefaultValues" then
+        config.decodeMode = ConstantDefine.DecodeMode.LPB_COPYDEF
+    elseif opt == "noDefaultValues" then
+        config.decodeMode = ConstantDefine.DecodeMode.LPB_NODEF
+    elseif opt == "useDefaultMetatable" then
+        config.decodeMode = ConstantDefine.DecodeMode.LPB_METADEF
+    elseif opt == "enumAsName" then
+        config.enumAsValue = false
+    elseif opt == "enumAsValue" then
+        config.enumAsValue = true
+    end
+end
+
+--#endregion
+
+--#region 数据库搜索
 
 -- 从数据库搜索类型
 ---@param state protobuf.TypeDatabase
@@ -106,7 +142,7 @@ function M.findName(protobufType, name)
     return protobufType.field_names[name]
 end
 
--- 搜索内部类型 (以`.`开头的类型)
+-- 搜索内部类型(以`.`开头的类型)
 ---@param LS protobuf.GlobalConfig
 ---@param s protobuf.Slice
 ---@return protobuf.Type?
@@ -124,5 +160,7 @@ function M.findInternalType(LS, s)
         end
     end
 end
+
+--#endregion
 
 return M

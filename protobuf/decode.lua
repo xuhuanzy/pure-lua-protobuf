@@ -48,13 +48,13 @@ local PB_Tsint64 = ConstantDefine.pb_FieldType.PB_Tsint64
 
 -- 默认值, 会自动判断是否使用默认字段. </br>
 -- 对于`proto3`, 默认复制默认值到解码目标表中来, 对于其他则忽略默认值设置
-local LPB_DEFDEF = ConstantDefine.EncodeMode.LPB_DEFDEF
+local LPB_DEFDEF = ConstantDefine.DecodeMode.LPB_DEFDEF
 -- 将默认值表复制到解码目标表中来
-local LPB_COPYDEF = ConstantDefine.EncodeMode.LPB_COPYDEF
+local LPB_COPYDEF = ConstantDefine.DecodeMode.LPB_COPYDEF
 -- 将默认值表作为解码目标表的元表使用
-local LPB_METADEF = ConstantDefine.EncodeMode.LPB_METADEF
+local LPB_METADEF = ConstantDefine.DecodeMode.LPB_METADEF
 -- 忽略默认值
-local LPB_NODEF = ConstantDefine.EncodeMode.LPB_NODEF
+local LPB_NODEF = ConstantDefine.DecodeMode.LPB_NODEF
 
 local USE_FIELD = ConstantDefine.DefFlags.USE_FIELD
 local USE_REPEAT = ConstantDefine.DefFlags.USE_REPEAT
@@ -293,7 +293,7 @@ end
 lpb_pushtypetable = function(env, type)
     local LS = env.LS
     local newTable = {}
-    local mode = LS.encodeMode -- 获取当前编码模式
+    local mode = LS.decodeMode -- 获取当前编码模式
     if type.is_proto3 and mode == LPB_DEFDEF then
         mode = LPB_COPYDEF
     end
