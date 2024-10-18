@@ -1,9 +1,9 @@
 --#region 导入
 
-local lpb_lstate = require("pb.state").lpb_lstate
-local pb_field = require("pb.state").pb_field
-local pb_fname = require("pb.state").pb_fname
-local lpb_type = require("pb.state").lpb_type
+local getConfig = require("pb.state").getConfig
+local findField = require("pb.state").findField
+local findName = require("pb.state").findName
+local findInternalType = require("pb.state").findInternalType
 
 local tryGetName = require("pb.names").tryGetName
 
@@ -74,15 +74,15 @@ local rawset      = rawset
 
 --#endregion
 
----@class Protobuf.Encode
+---@class protobuf.Encode
 local M           = {}
 
 --#region 声明
 
----@class lpb_Env
----@field LS lpb_State
----@field b protobuf.Char[]
----@field s protobuf.Slice
+---@class protobuf.CodingEnv 编码环境
+---@field LS protobuf.GlobalConfig 
+---@field buffer protobuf.Char[]
+---@field slice protobuf.Slice
 ---@field saveTable table 保存解码后的数据
 
 
@@ -100,136 +100,137 @@ local encode
 
 
 
----@type {[pb_FieldType]: fun(env: lpb_Env, type: integer, value: any, exist: Protobuf._TempVar.Exist): integer}
+---@type {[protobuf.FieldType]: fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
 local switchAddType
 switchAddType = {
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tbool] = function(env, type, value, exist)
         if exist then exist[1] = true end
-        return pb_addvarint32(env.b, (not not value) and 1 or 0)
+        return pb_addvarint32(env.buffer, (not not value) and 1 or 0)
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tdouble] = function(env, type, value, exist)
         local receivedValue = tonumber(value)
         if receivedValue then
             if exist then exist[1] = receivedValue ~= 0.0 end
-            return pb_addfixed64(env.b, pb_encode_double(receivedValue))
+            return pb_addfixed64(env.buffer, pb_encode_double(receivedValue))
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tfloat] = function(env, type, value, exist)
         local receivedValue = tonumber(value)
         if receivedValue then
             if exist then exist[1] = receivedValue ~= 0.0 end
-            return pb_addfixed32(env.b, pb_encode_float(receivedValue))
+            return pb_addfixed32(env.buffer, pb_encode_float(receivedValue))
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tfixed32] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addfixed32(env.b, receivedValue)
+            return pb_addfixed32(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tsfixed32] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addfixed32(env.b, receivedValue)
+            return pb_addfixed32(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tint32] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addvarint64(env.b, expandsig32To64(receivedValue))
+            return pb_addvarint64(env.buffer, expandsig32To64(receivedValue))
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tuint32] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addvarint32(env.b, receivedValue)
+            return pb_addvarint32(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tsint32] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addvarint32(env.b, pb_encode_sint32(receivedValue))
+            return pb_addvarint32(env.buffer, pb_encode_sint32(receivedValue))
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tfixed64] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addfixed64(env.b, receivedValue)
+            return pb_addfixed64(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tsfixed64] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addfixed64(env.b, receivedValue)
+            return pb_addfixed64(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tint64] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addvarint64(env.b, receivedValue)
+            return pb_addvarint64(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tuint64] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addvarint64(env.b, receivedValue)
+            return pb_addvarint64(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tsint64] = function(env, type, value, exist)
         local receivedValue, hasResult = lpb_tointegerx(value)
         if hasResult then
             if exist then exist[1] = (receivedValue ~= 0) end
-            return pb_addvarint64(env.b, pb_encode_sint64(receivedValue))
+            return pb_addvarint64(env.buffer, pb_encode_sint64(receivedValue))
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tbytes] = function(env, type, value, exist)
         local receivedValue = lpb_toslice(value)
         if receivedValue.pos then
             if exist then exist[1] = (pb_len(receivedValue) > 0) end
-            return pb_addbytes(env.b, receivedValue)
+            return pb_addbytes(env.buffer, receivedValue)
         end
         return 0
     end,
-
+    ---@overload  fun(env: protobuf.CodingEnv, type: integer, value: any, exist: protobuf._TempVar.Exist?): integer}
     [PB_Tstring] = function(env, type, value, exist)
         local receivedValue = lpb_toslice(value)
         if receivedValue.pos then
             if exist then exist[1] = (pb_len(receivedValue) > 0) end
-            return pb_addbytes(env.b, receivedValue)
+            return pb_addbytes(env.buffer, receivedValue)
         end
         return 0
     end,
@@ -237,19 +238,19 @@ switchAddType = {
 
 
 
----@param env lpb_Env
+---@param env protobuf.CodingEnv
 ---@param type integer
 ---@param value any
----@param exist? Protobuf._TempVar.Exist 是否存在
+---@param exist? protobuf._TempVar.Exist 是否存在
 ---@return integer
 local function lpb_addtype(env, type, value, exist)
     return switchAddType[type](env, type, value, exist)
 end
 
----@param env lpb_Env
----@param field Protobuf.Field
+---@param env protobuf.CodingEnv
+---@param field protobuf.Field
 ---@param value any
----@param exist? Protobuf._TempVar.Exist 是否存在
+---@param exist? protobuf._TempVar.Exist 是否存在
 ---@return integer len 写入的字节长度
 local function lpbE_enum(env, field, value, exist)
     local luaType = type(value)
@@ -260,16 +261,16 @@ local function lpbE_enum(env, field, value, exist)
         if exist then
             exist[1] = value ~= 0
         end
-        return pb_addvarint64(env.b, value)
+        return pb_addvarint64(env.buffer, value)
     end
     ---@cast value any
 
-    local ev = pb_fname(field.type, tryGetName(env.LS.state, value))
+    local ev = findName(field.type, tryGetName(env.LS.db, value))
     if ev then
         if exist then
             exist[1] = ev.number ~= 0
         end
-        return pb_addvarint32(env.b, ev.number)
+        return pb_addvarint32(env.buffer, ev.number)
     end
 
     if luaType == "string" then
@@ -279,55 +280,55 @@ local function lpbE_enum(env, field, value, exist)
         end
         ---@cast v number
         if exist then exist[1] = v ~= 0 end
-        return pb_addvarint64(env.b, v)
+        return pb_addvarint64(env.buffer, v)
     end
     argcheck(false, "number/string expected at field '%s', got %s", field.name, luaType)
     return 0
 end
 
 
----@param env lpb_Env
----@param field Protobuf.Field
+---@param env protobuf.CodingEnv
+---@param field protobuf.Field
 ---@param value any
----@param exist? Protobuf._TempVar.Exist 是否存在
+---@param exist? protobuf._TempVar.Exist 是否存在
 ---@return integer length 写入的字节长度
 local function lpbE_field(env, field, value, exist)
-    if field.type_id == PB_Tenum then
+    if field.typeId == PB_Tenum then
         return lpbE_enum(env, field, value, exist)
-    elseif field.type_id == PB_Tmessage then
+    elseif field.typeId == PB_Tmessage then
         checkTable(field, value)
-        pb_addvarint32(env.b, 0)
-        local len = #env.b
+        pb_addvarint32(env.buffer, 0)
+        local len = #env.buffer
         encode(env, field.type, value)
         if exist then
-            exist[1] = len < #env.b
+            exist[1] = len < #env.buffer
         end
-        return lpb_addlength(env.b, len, 1)
+        return lpb_addlength(env.buffer, len, 1)
     else
-        local len = lpb_addtype(env, field.type_id, value, exist)
+        local len = lpb_addtype(env, field.typeId, value, exist)
         if not (len > 0) then
-            throw("expected %s for field '%s', got %s", lpb_expected(field.type_id), field.name, type(value))
+            throw("expected %s for field '%s', got %s", lpb_expected(field.typeId), field.name, type(value))
         end
         return len
     end
 end
 
----@class Protobuf._TempVar.Exist
+---@class protobuf._TempVar.Exist
 ---@field [1] boolean 是否存在
 
----@param env lpb_Env
----@param field Protobuf.Field
+---@param env protobuf.CodingEnv
+---@param field protobuf.Field
 ---@param value any
 ---@param ignoreZero boolean 是否忽略值为零的字段
 local function lpbE_tagfield(env, field, value, ignoreZero)
-    local buffer = env.b
-    ---@type Protobuf._TempVar.Exist
+    local buffer = env.buffer
+    ---@type protobuf._TempVar.Exist
     local exist = { false }
-    local tagLength = pb_addvarint32(buffer, pb_pair(field.number, pb_wtypebytype(field.type_id)))
+    local tagLength = pb_addvarint32(buffer, pb_pair(field.number, pb_wtypebytype(field.typeId)))
     -- 编码, 然后返回编码的字节数
     local ignoredLen = lpbE_field(env, field, value, exist)
     -- 不使用默认值, 并且不存在, 并且忽略零值
-    if not env.LS.encode_default_values and not exist[1] and ignoreZero then
+    if not env.LS.encodeDefaultValues and not exist[1] and ignoreZero then
         -- 需要`+1`, 否则会删掉目标更早的字节(因为lua的下标从1开始)
         local removeStartIndex = #buffer - (tagLength + ignoredLen) + 1
         -- 该字段应该被忽略
@@ -341,49 +342,49 @@ end
 
 
 -- 解析`map`类型(不是`Lua`的`table`类型而是`protobuf`的`map`类型)
----@param env lpb_Env
----@param field Protobuf.Field
+---@param env protobuf.CodingEnv
+---@param field protobuf.Field
 ---@param map table
 local function lpbE_map(env, field, map)
-    local kf = pb_field(field.type, 1)
-    local vf = pb_field(field.type, 2)
+    local kf = findField(field.type, 1)
+    local vf = findField(field.type, 2)
     if not kf or not vf then
         return
     end
     checkTable(field, map)
     for key, value in pairs(map) do
         -- 写入字段编号与类型
-        pb_addvarint32(env.b, pb_pair(field.number, PB_TBYTES))
+        pb_addvarint32(env.buffer, pb_pair(field.number, PB_TBYTES))
         -- 写入占位符
-        pb_addvarint32(env.b, 0)
+        pb_addvarint32(env.buffer, 0)
         -- 获取已写入长度
-        local len = #env.b
+        local len = #env.buffer
         -- 写入键
         lpbE_tagfield(env, kf, key, true)
         -- 写入值
         lpbE_tagfield(env, vf, value, true)
         -- 写入长度
-        lpb_addlength(env.b, len, 1)
+        lpb_addlength(env.buffer, len, 1)
     end
 end
 
----@param env lpb_Env
----@param field Protobuf.Field
+---@param env protobuf.CodingEnv
+---@param field protobuf.Field
 ---@param data any
 local function lpbE_repeated(env, field, data)
     checkTable(field, data)
     if field.packed then
         -- 如果数据为空, 并且不编码默认值, 则不写入数据
-        if #data == 0 and not env.LS.encode_default_values then
+        if #data == 0 and not env.LS.encodeDefaultValues then
             return
         end
-        pb_addvarint32(env.b, pb_pair(field.number, PB_TBYTES))
-        pb_addvarint32(env.b, 0)
-        local len = #env.b
+        pb_addvarint32(env.buffer, pb_pair(field.number, PB_TBYTES))
+        pb_addvarint32(env.buffer, 0)
+        local len = #env.buffer
         for _, value in ipairs(data) do
             lpbE_field(env, field, value, nil)
         end
-        lpb_addlength(env.b, len, 1)
+        lpb_addlength(env.buffer, len, 1)
     else
         for _, value in ipairs(data) do
             lpbE_tagfield(env, field, value, false)
@@ -391,24 +392,24 @@ local function lpbE_repeated(env, field, data)
     end
 end
 
----@param env lpb_Env
----@param protobufType Protobuf.Type
+---@param env protobuf.CodingEnv
+---@param protobufType protobuf.Type
 ---@param value any
----@param field Protobuf.Field
+---@param field protobuf.Field
 local function lpb_encode_onefield(env, protobufType, value, field)
-    if field.type and field.type.is_map then
+    if field.type and field.type.isMap then
         lpbE_map(env, field, value)
     elseif field.repeated then
         lpbE_repeated(env, field, value)
     elseif not field.type or not field.type.is_dead then
         lpbE_tagfield(env, field, value,
-            protobufType.is_proto3 and not (field.oneof_idx >= 1) and field.type_id ~= PB_Tmessage
+            protobufType.is_proto3 and not (field.oneofIdx >= 1) and field.typeId ~= PB_Tmessage
         )
     end
 end
 
----@param env lpb_Env
----@param protobufType Protobuf.Type
+---@param env protobuf.CodingEnv
+---@param protobufType protobuf.Type
 ---@param data table
 encode = function(env, protobufType, data)
     for _, field in pairs(protobufType.field_tags) do
@@ -425,22 +426,22 @@ end
 ---@param data table
 ---@return string
 function M.encode(type, data)
-    local globalState = lpb_lstate()
-    local protobufType = lpb_type(globalState, NewProtobufSlice(type))
+    local globalState = getConfig()
+    local protobufType = findInternalType(globalState, NewProtobufSlice(type))
     if not protobufType then
         error("unknown type: " .. type)
     end
-    ---@type lpb_Env
+    ---@type protobuf.CodingEnv
     local env = {
         LS = globalState,
-        b = {},
+        buffer = {},
         ---@diagnostic disable-next-line: missing-fields
-        s = {},
+        slice = {},
         ---@diagnostic disable-next-line: assign-type-mismatch
         saveTable = nil
     }
     encode(env, protobufType, data)
-    return stringChar(tableUnpack(env.b))
+    return stringChar(tableUnpack(env.buffer))
 end
 
 return M

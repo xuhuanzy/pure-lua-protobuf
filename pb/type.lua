@@ -3,25 +3,25 @@ local meta = tool.meta
 local setmetatable = setmetatable
 
 
----@class Protobuf.OneofEntry
+---@class protobuf.OneofEntry
 ---@field name protobuf.NameValue
 ---@field index integer
 
----@class Protobuf.Type
+---@class protobuf.Type
 ---@field name protobuf.NameValue
 ---@field basename string
----@field field_sort Protobuf.Field[]
----@field field_tags Protobuf.Field[]
----@field field_names {[string]: Protobuf.Field} 
----@field oneof_index Protobuf.OneofEntry[]
+---@field field_sort protobuf.Field[]
+---@field field_tags protobuf.Field[]
+---@field field_names {[string]: protobuf.Field} 
+---@field oneof_index protobuf.OneofEntry[]
 ---@field oneof_count integer # extra field count from oneof entries
 ---@field oneof_field integer  #  extra field in oneof declarations
 ---@field field_count integer
 ---@field is_enum boolean
----@field is_map boolean
+---@field isMap boolean
 ---@field is_proto3 boolean
 ---@field is_dead boolean
-local ProtobufType = meta("Protobuf.Type")
+local ProtobufType = meta("protobuf.Type")
 
 ---@param str string
 ---@return string
@@ -35,10 +35,10 @@ local function getBasename(str)
     return start and str:sub(start + 1) or str
 end
 
----@return Protobuf.Type
+---@return protobuf.Type
 ---@param name protobuf.NameValue
 function ProtobufType.new(name)
-    ---@type Protobuf.Type
+    ---@type protobuf.Type
     local self = {
         name = name,
         basename = getBasename(name),
@@ -50,13 +50,11 @@ function ProtobufType.new(name)
         oneof_count = 0,
         oneof_field = 0,
         is_enum = false,
-        is_map = false,
+        isMap = false,
         is_proto3 = false,
         is_dead = false,
     }
     return setmetatable(self, ProtobufType)
 end
 
-return {
-    ProtobufType = ProtobufType
-}
+return ProtobufType

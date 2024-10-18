@@ -41,7 +41,7 @@ local PB_TWIRECOUNT = ConstantDefine.pb_WireType.PB_TWIRECOUNT
 
 
 -- protobuf 工具类
----@class Export.Protobuf.Util
+---@class export.protobuf.Util
 local M = {}
 
 

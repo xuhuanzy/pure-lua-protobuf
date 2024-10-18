@@ -7,7 +7,7 @@ local ipairs = ipairs
 local pairs = pairs
 
 -- 工具类, 不依赖 protobuf 的定义
----@class Export.Protobuf.Tool
+---@class export.protobuf.Tool
 local Tool = {}
 
 
@@ -58,7 +58,7 @@ end
 Tool.argcheck = argcheck
 
 -- 检查值是否为表
----@param field Protobuf.Field 字段, 用于定位
+---@param field protobuf.Field 字段, 用于定位
 ---@param data any 值
 function Tool.checkTable(field, data)
     argcheck(

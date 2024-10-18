@@ -20,11 +20,11 @@ local data = {
         { name = "bob",   phonenumber = 45645674567 },
     },
     attrs    = {
-        ["123"] = "456",
-        ["test"] = "7798",
+        ["123"] = "456"
     },
     email    = "12312341234@qq.com",
     phone    = "12312341234",
+    color    =  1,
 }
 
 -- 将Lua表编码为二进制数据

@@ -3,7 +3,14 @@ local getSliceString = require("pb.util").getSliceString
 local type = type
 
 
----@class Export.Protobuf.Name
+---@alias protobuf.NameValue string
+
+---@class protobuf.NameEntry
+---@field refcount integer # 引用计数
+---@field name protobuf.NameValue # 名称
+
+
+---@class export.protobuf.Name
 local Export = {}
 
 
@@ -15,7 +22,7 @@ local function useName(nameEntry)
 end
 
 
----@param state pb_State
+---@param state protobuf.TypeDatabase
 ---@param name string
 ---@return protobuf.NameEntry
 local function newName(state, name)
@@ -26,7 +33,7 @@ local function newName(state, name)
     return state.nametable[name]
 end
 
----@param state pb_State
+---@param state protobuf.TypeDatabase
 ---@param name string
 ---@return protobuf.NameEntry
 local function getNameEntry(state, name)
@@ -34,7 +41,7 @@ local function getNameEntry(state, name)
 end
 
 ---尝试获取名称, 如果名称不存在, 则创建名称
----@param state pb_State 状态
+---@param state protobuf.TypeDatabase 状态
 ---@param s protobuf.Slice|string 字符串或切片
 ---@return protobuf.NameValue? @名称
 function Export.tryGetName(state, s)

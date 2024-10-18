@@ -299,14 +299,14 @@ do
         end
     end
 end
----@class Protobuf.Parser
+---@class protobuf.Parser
 local Parser = meta "Parser"
 do
     Parser.typemap = {}
     Parser.loaded  = {}
     Parser.paths   = { "", "." }
 
-    ---@return Protobuf.Parser
+    ---@return protobuf.Parser
     function Parser.new()
         local self   = {}
         self.typemap = {}

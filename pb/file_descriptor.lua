@@ -25,107 +25,106 @@ local function pbL_add(_table)
     return _table[#_table]
 end
 
----@class PB.FieldDescriptor
+---@class protobuf.FieldDescriptor
 local M = {}
 
----@class pbL_EnumValueInfo
+---@class protobuf.Loader.EnumValueInfo
 ---@field name protobuf.Slice
 ---@field number integer
 
----@class pbL_EnumInfo
+---@class protobuf.Loader.EnumInfo
 ---@field name protobuf.Slice
----@field value pbL_EnumValueInfo[]
+---@field value protobuf.Loader.EnumValueInfo[]
 
----@class pbL_FieldInfo
+---@class protobuf.Loader.FieldInfo
 ---@field name protobuf.Slice
----@field type_name protobuf.Slice
+---@field typeName protobuf.Slice
 ---@field extendee protobuf.Slice
----@field default_value protobuf.Slice
+---@field defaultValue protobuf.Slice
 ---@field number integer
 ---@field label integer
 ---@field type integer
----@field oneof_index integer
+---@field oneofIndex integer
 ---@field packed? boolean # 是否是`packed`类型, packed: 压缩
 
-
----@class pbL_TypeInfo
+---@class protobuf.Loader.TypeInfo
 ---@field name protobuf.Slice
----@field is_map boolean
----@field field pbL_FieldInfo[]
----@field extension pbL_FieldInfo[]
----@field enum_type pbL_EnumInfo[]
----@field nested_type pbL_TypeInfo[]
----@field oneof_decl protobuf.Slice[]
+---@field isMap boolean
+---@field field protobuf.Loader.FieldInfo[]
+---@field extension protobuf.Loader.FieldInfo[]
+---@field enumType protobuf.Loader.EnumInfo[]
+---@field nestedType protobuf.Loader.TypeInfo[]
+---@field oneofDecl protobuf.Slice[]
 
----@class pbL_FileInfo
+---@class protobuf.Loader.FileInfo
 ---@field package protobuf.Slice
 ---@field syntax protobuf.Slice
----@field enum_type pbL_EnumInfo[]
----@field message_type pbL_TypeInfo[]
----@field extension pbL_FieldInfo[]
+---@field enumType protobuf.Loader.EnumInfo[]
+---@field messageType protobuf.Loader.TypeInfo[]
+---@field extension protobuf.Loader.FieldInfo[]
 
----@param _table pbL_FileInfo
+---@param _table protobuf.Loader.FileInfo
 local function try_init_pbL_FileInfo(_table)
-    _table.enum_type = _table.enum_type or {}
-    _table.message_type = _table.message_type or {}
+    _table.enumType = _table.enumType or {}
+    _table.messageType = _table.messageType or {}
     _table.extension = _table.extension or {}
     _table.package = _table.package or {}
     _table.syntax = _table.syntax or {}
 end
 
----@param _table pbL_TypeInfo
----@return pbL_TypeInfo
+---@param _table protobuf.Loader.TypeInfo
+---@return protobuf.Loader.TypeInfo
 local function try_init_pbL_TypeInfo(_table)
     _table.name = _table.name or {}
     _table.field = _table.field or {}
     _table.extension = _table.extension or {}
-    _table.enum_type = _table.enum_type or {}
-    _table.nested_type = _table.nested_type or {}
-    _table.oneof_decl = _table.oneof_decl or {}
+    _table.enumType = _table.enumType or {}
+    _table.nestedType = _table.nestedType or {}
+    _table.oneofDecl = _table.oneofDecl or {}
     return _table
 end
 
 
----@param _table pbL_FieldInfo
----@return pbL_FieldInfo
+---@param _table protobuf.Loader.FieldInfo
+---@return protobuf.Loader.FieldInfo
 local function try_init_pbL_FieldInfo(_table)
     _table.name = _table.name or {}
-    _table.type_name = _table.type_name or {}
+    _table.typeName = _table.typeName or {}  
     _table.extendee = _table.extendee or {}
-    _table.default_value = _table.default_value or {}
-    _table.oneof_index = _table.oneof_index or 0
+    _table.defaultValue = _table.defaultValue or {} 
+    _table.oneofIndex = _table.oneofIndex or 0 
     return _table
 end
 
----@param _table pbL_EnumInfo
----@return pbL_EnumInfo
+---@param _table protobuf.Loader.EnumInfo
+---@return protobuf.Loader.EnumInfo
 local function try_init_pbL_EnumInfo(_table)
     _table.name = _table.name or {}
     _table.value = _table.value or {}
     return _table
 end
 
----@param _table pbL_EnumValueInfo
+---@param _table protobuf.Loader.EnumValueInfo
 local function try_init_pbL_EnumValueInfo(_table)
     _table.name = _table.name or {}
 end
 
----@param L pb_Loader
+---@param L protobuf.Loader
 ---@param pv protobuf.Slice
 ---@return integer
 local function pbL_readbytes(L, pv)
-    local len = pb_readbytes(L.s, pv)
+    local len = pb_readbytes(L.slice, pv)
     if len == 0 then
         return PB_ERROR
     end
     return PB_OK
 end
 
----@param L pb_Loader
+---@param L protobuf.Loader
 ---@return integer @是否成功
 ---@return integer? @读取到的值
 local function pbL_readint32(L)
-    local len, v = pb_readvarint32(L.s)
+    local len, v = pb_readvarint32(L.slice)
     if len == 0 then
         return PB_ERROR, nil
     end
@@ -133,11 +132,11 @@ local function pbL_readint32(L)
 end
 
 
----@param L pb_Loader
+---@param L protobuf.Loader
 ---@param pv protobuf.Slice
 ---@return integer
 local function pbL_beginmsg(L, pv)
-    local oldSlice = L.s
+    local oldSlice = L.slice
 
     ---@diagnostic disable-next-line: missing-fields
     local targetSlice = {} ---@type protobuf.Slice
@@ -149,33 +148,33 @@ local function pbL_beginmsg(L, pv)
     pv.pos = oldSlice.pos
     pv.start = oldSlice.start
     pv.end_pos = oldSlice.end_pos
-    L.s = targetSlice
+    L.slice = targetSlice
     return PB_OK
 end
 
----@param L pb_Loader
+---@param L protobuf.Loader
 ---@param pv protobuf.Slice
 local function pbL_endmsg(L, pv)
-    L.s = pv
+    L.slice = pv
 end
 
 -- 字段选项
----@param L pb_Loader
----@param info pbL_FieldInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.FieldInfo
 ---@return integer
 function M.pbL_FieldOptions(L, info)
     ---@diagnostic disable-next-line: missing-fields
     local targetSlice = {} ---@type protobuf.Slice
     assert(pbL_beginmsg(L, targetSlice) == PB_OK)
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(2, PB_TVARINT) == tag then -- bool packed
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
             info.packed = v ~= 0
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
     pbL_endmsg(L, targetSlice)
@@ -183,8 +182,8 @@ function M.pbL_FieldOptions(L, info)
 end
 
 -- 字段描述
----@param L pb_Loader
----@param info pbL_FieldInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.FieldInfo
 ---@return integer
 function M.pbL_FieldDescriptorProto(L, info)
     ---@diagnostic disable-next-line: missing-fields
@@ -194,7 +193,7 @@ function M.pbL_FieldDescriptorProto(L, info)
     info.packed = nil
 
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(1, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.name) == PB_OK)
@@ -211,20 +210,20 @@ function M.pbL_FieldDescriptorProto(L, info)
             assert(ret == PB_OK) ---@cast v integer
             info.type = v
         elseif pb_pair(6, PB_TBYTES) == tag then
-            assert(pbL_readbytes(L, info.type_name) == PB_OK)
+            assert(pbL_readbytes(L, info.typeName) == PB_OK)
         elseif pb_pair(2, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.extendee) == PB_OK)
         elseif pb_pair(7, PB_TBYTES) == tag then
-            assert(pbL_readbytes(L, info.default_value) == PB_OK)
+            assert(pbL_readbytes(L, info.defaultValue) == PB_OK)
         elseif pb_pair(8, PB_TBYTES) == tag then
             -- 输出剩余长度
             assert(M.pbL_FieldOptions(L, info) == PB_OK)
         elseif pb_pair(9, PB_TVARINT) == tag then
             local ret, _ = pbL_readint32(L)
             assert(ret == PB_OK)
-            info.oneof_index = info.oneof_index + 1
+            info.oneofIndex = info.oneofIndex + 1
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -233,8 +232,8 @@ function M.pbL_FieldDescriptorProto(L, info)
 end
 
 -- 枚举值描述
----@param L pb_Loader
----@param info pbL_EnumValueInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.EnumValueInfo
 ---@return integer
 local function pbL_EnumValueDescriptorProto(L, info)
     ---@diagnostic disable-next-line: missing-fields
@@ -244,7 +243,7 @@ local function pbL_EnumValueDescriptorProto(L, info)
     assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(1, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.name) == PB_OK)
@@ -253,7 +252,7 @@ local function pbL_EnumValueDescriptorProto(L, info)
             assert(ret == PB_OK) ---@cast v integer
             info.number = v
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -262,8 +261,8 @@ local function pbL_EnumValueDescriptorProto(L, info)
 end
 
 -- 枚举描述
----@param L pb_Loader
----@param info pbL_EnumInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.EnumInfo
 ---@return integer
 function M.pbL_EnumDescriptorProto(L, info)
     ---@diagnostic disable-next-line: missing-fields
@@ -273,14 +272,14 @@ function M.pbL_EnumDescriptorProto(L, info)
     assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(1, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.name) == PB_OK)
         elseif pb_pair(2, PB_TBYTES) == tag then -- EnumValueDescriptorProto value
             assert(pbL_EnumValueDescriptorProto(L, pbL_add(info.value)) == PB_OK)
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -289,8 +288,8 @@ function M.pbL_EnumDescriptorProto(L, info)
 end
 
 -- 枚举描述
----@param L pb_Loader
----@param info pbL_TypeInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.TypeInfo
 ---@return integer
 function M.pbL_MessageOptions(L, info)
     ---@diagnostic disable-next-line: missing-fields
@@ -300,14 +299,14 @@ function M.pbL_MessageOptions(L, info)
     assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(7, PB_TVARINT) == tag then
             local ret, v = pbL_readint32(L)
             assert(ret == PB_OK) ---@cast v integer
-            info.is_map = v ~= 0
+            info.isMap = v ~= 0
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -316,8 +315,8 @@ function M.pbL_MessageOptions(L, info)
 end
 
 -- 枚举描述
----@param L pb_Loader
----@param info pbL_TypeInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.TypeInfo
 ---@return integer
 function M.pbL_OneofDescriptorProto(L, info)
     ---@diagnostic disable-next-line: missing-fields
@@ -327,12 +326,12 @@ function M.pbL_OneofDescriptorProto(L, info)
     assert(pbL_beginmsg(L, targetSlice) == PB_OK)
 
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(1, PB_TBYTES) == tag then
-            assert(pbL_readbytes(L, pbL_add(info.oneof_decl)) == PB_OK)
+            assert(pbL_readbytes(L, pbL_add(info.oneofDecl)) == PB_OK)
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
 
@@ -341,8 +340,8 @@ function M.pbL_OneofDescriptorProto(L, info)
 end
 
 -- 描述符
----@param L pb_Loader
----@param info pbL_TypeInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.TypeInfo
 ---@return integer
 function M.pbL_DescriptorProto(L, info)
     ---@diagnostic disable-next-line: missing-fields
@@ -351,7 +350,7 @@ function M.pbL_DescriptorProto(L, info)
     try_init_pbL_TypeInfo(info)
     assert(pbL_beginmsg(L, targetSlice) == PB_OK)
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(1, PB_TBYTES) == tag then     -- string name
             assert(pbL_readbytes(L, info.name) == PB_OK)
@@ -360,15 +359,15 @@ function M.pbL_DescriptorProto(L, info)
         elseif pb_pair(6, PB_TBYTES) == tag then -- FieldDescriptorProto extension
             assert(M.pbL_FieldDescriptorProto(L, pbL_add(info.extension)) == PB_OK)
         elseif pb_pair(3, PB_TBYTES) == tag then -- DescriptorProto nested_type
-            assert(M.pbL_DescriptorProto(L, pbL_add(info.nested_type)) == PB_OK)
+            assert(M.pbL_DescriptorProto(L, pbL_add(info.nestedType)) == PB_OK)
         elseif pb_pair(4, PB_TBYTES) == tag then -- EnumDescriptorProto enum_type
-            assert(M.pbL_EnumDescriptorProto(L, pbL_add(info.enum_type)) == PB_OK)
+            assert(M.pbL_EnumDescriptorProto(L, pbL_add(info.enumType)) == PB_OK)
         elseif pb_pair(8, PB_TBYTES) == tag then -- OneofDescriptorProto oneof_decl
             assert(M.pbL_OneofDescriptorProto(L, info) == PB_OK)
         elseif pb_pair(7, PB_TBYTES) == tag then -- MessageOptions options
             assert(M.pbL_MessageOptions(L, info) == PB_OK)
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
     pbL_endmsg(L, targetSlice)
@@ -376,8 +375,8 @@ function M.pbL_DescriptorProto(L, info)
 end
 
 -- 文件描述
----@param L pb_Loader
----@param info pbL_FileInfo
+---@param L protobuf.Loader
+---@param info protobuf.Loader.FileInfo
 ---@return integer
 function M.pbL_FileDescriptorProto(L, info)
     ---@diagnostic disable-next-line: missing-fields
@@ -386,37 +385,37 @@ function M.pbL_FileDescriptorProto(L, info)
     try_init_pbL_FileInfo(info)
     assert(pbL_beginmsg(L, targetSlice) == PB_OK)
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(2, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.package) == PB_OK)
         elseif pb_pair(4, PB_TBYTES) == tag then
-            assert(M.pbL_DescriptorProto(L, pbL_add(info.message_type)) == PB_OK)
+            assert(M.pbL_DescriptorProto(L, pbL_add(info.messageType)) == PB_OK)
         elseif pb_pair(5, PB_TBYTES) == tag then
-            assert(M.pbL_EnumDescriptorProto(L, pbL_add(info.enum_type)) == PB_OK)
+            assert(M.pbL_EnumDescriptorProto(L, pbL_add(info.enumType)) == PB_OK)
         elseif pb_pair(7, PB_TBYTES) == tag then
             assert(M.pbL_FieldDescriptorProto(L, pbL_add(info.extension)) == PB_OK)
         elseif pb_pair(12, PB_TBYTES) == tag then
             assert(pbL_readbytes(L, info.syntax) == PB_OK)
         else
-            if pb_skipvalue(L.s, tag) == 0 then return PB_ERROR end
+            if pb_skipvalue(L.slice, tag) == 0 then return PB_ERROR end
         end
     end
     pbL_endmsg(L, targetSlice)
     return PB_OK
 end
 
----@param L pb_Loader
----@param files pbL_FileInfo[]
+---@param L protobuf.Loader
+---@param files protobuf.Loader.FileInfo[]
 ---@return integer
 function M.pbL_FileDescriptorSet(L, files)
     while true do
-        local len, tag = pb_readvarint32(L.s) ---@cast tag integer
+        local len, tag = pb_readvarint32(L.slice) ---@cast tag integer
         if len == 0 then break end
         if pb_pair(1, PB_TBYTES) == tag then
             assert(M.pbL_FileDescriptorProto(L, pbL_add(files)) == PB_OK)
         else
-            assert(pb_skipvalue(L.s, tag) == PB_OK)
+            assert(pb_skipvalue(L.slice, tag) == PB_OK)
         end
     end
     return PB_OK

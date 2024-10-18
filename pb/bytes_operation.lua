@@ -60,7 +60,8 @@ local pairs = pairs
 
 --#endregion
 
----@class Protobuf.BytesOperation
+
+---@class protobuf.BytesOperation
 local M = {}
 
 --#region 写入
@@ -566,109 +567,109 @@ local function lpb_pushinteger(value, isUnsigned, mode)
     end
 end
 
----@type {[pb_FieldType]: fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+---@type {[protobuf.FieldType]: fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
 local switchReadType
 -- 读取类型转为读表形式
 switchReadType = {
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tbool] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return value ~= 0
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tenum] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
         return value
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, false, env.LS.int64_mode)
+        return lpb_pushinteger(value, false, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tuint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, true, env.LS.int64_mode)
+        return lpb_pushinteger(value, true, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsint32] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(pb_decode_sint32(value), false, env.LS.int64_mode)
+        return lpb_pushinteger(pb_decode_sint32(value), false, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, false, env.LS.int64_mode)
+        return lpb_pushinteger(value, false, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tuint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, true, env.LS.int64_mode)
+        return lpb_pushinteger(value, true, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsint64] = function(env, s)
         local len, value = pb_readvarint64(s) ---@cast value integer
         if len == 0 then error("invalid varint value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(pb_decode_sint64(value), false, env.LS.int64_mode)
+        return lpb_pushinteger(pb_decode_sint64(value), false, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tfloat] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
         return pb_decode_float(value)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tfixed32] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, true, env.LS.int64_mode)
+        return lpb_pushinteger(value, true, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsfixed32] = function(env, s)
         local len, value = pb_readfixed32(s) ---@cast value integer
         if len == 0 then error("invalid fixed32 value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, false, env.LS.int64_mode)
+        return lpb_pushinteger(value, false, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tdouble] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
         return pb_decode_double(value)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tfixed64] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, true, env.LS.int64_mode)
+        return lpb_pushinteger(value, true, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tsfixed64] = function(env, s)
         local len, value = pb_readfixed64(s) ---@cast value integer
         if len == 0 then error("invalid fixed64 value at offset " .. (pb_pos(s) + 1)) end
-        return lpb_pushinteger(value, false, env.LS.int64_mode)
+        return lpb_pushinteger(value, false, env.LS.int64Mode)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tbytes] = function(env, s)
         ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
         local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tstring] = function(env, s)
         ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
         local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
         lpb_readbytes(s, targetSlice)
         return getSliceString(targetSlice)
     end,
-    ---@type fun(env: lpb_Env, s: protobuf.Slice): number|string|boolean|nil}
+    ---@type fun(env: protobuf.CodingEnv, s: protobuf.Slice): number|string|boolean|nil}
     [PB_Tmessage] = function(env, s)
         ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
         local targetSlice = { _data = nil, start = nil, pos = nil, end_pos = nil } ---@type protobuf.Slice
@@ -678,7 +679,7 @@ switchReadType = {
 }
 
 
----@param env lpb_Env
+---@param env protobuf.CodingEnv
 ---@param fieldType integer
 ---@param s protobuf.Slice
 ---@return number|string|boolean|nil value 读取到的值

@@ -1,4 +1,4 @@
----@class Protobuf.ConstantDefine
+---@class protobuf.ConstantDefine
 local M = {}
 
 -- 定义一个包含 Wire Type 的表
@@ -12,7 +12,7 @@ local PB_WIRE_TYPES = {
 }
 
 -- 用于描述字段在字节流中的编码类型
----@class pb_WireType
+---@class protobuf.WireType
 ---@field PB_TVARINT integer
 ---@field PB_T64BIT integer
 ---@field PB_TBYTES integer
@@ -53,7 +53,7 @@ local PB_TYPES = {
     { name = "sint64",   type = "sint64",   fmt = 'J' }
 }
 -- 应用层数据类型, 表示消息中每个字段的逻辑数据类型, 会映射到`WireType`
----@class pb_FieldType
+---@class protobuf.FieldType
 ---@field PB_TNONE integer
 ---@field PB_Tdouble integer
 ---@field PB_Tfloat integer
@@ -89,7 +89,7 @@ end
 
 
 -- 编码模式
----@enum Protobuf.EncodeMode
+---@enum protobuf.EncodeMode
 local EncodeMode = {
     -- 默认值, 会自动判断是否使用默认字段. </br>
     -- 对于`proto3`, 默认复制默认值到解码目标表中来, 对于其他则忽略默认值设置
@@ -102,7 +102,7 @@ local EncodeMode = {
     LPB_NODEF = 3,
 }
 
----@enum Protobuf.DefFlags
+---@enum protobuf.DefFlags
 local DefFlags = {
     -- 使用字段
     USE_FIELD = 1,
@@ -113,7 +113,7 @@ local DefFlags = {
 }
 
 -- 64位整数模式
----@enum Protobuf.Int64Mode
+---@enum protobuf.Int64Mode
 local Int64Mode = {
     -- 如果值的大小小于`uint32`允许的最大值，则存储整数，否则存储Lua浮点数类型或者64位整数.
     LPB_NUMBER = 0,
