@@ -7,7 +7,10 @@ This project provides support for Protobuf versions 2/3 in a pure Lua environmen
 
 ## 安装
 复制 `protobuf` 目录到你的项目中, 并在你的项目中 `require("protobuf")` 即可.
+
 `tools`目录是不必要的, 仅用于测试和示例.
+
+接口类型提示依赖于vscode插件 `sumneko.lua`(`emmylua`或许也可以), 请一并安装.
 
 
 ## 样例
@@ -51,3 +54,15 @@ local data2 = assert(decode("Person", bytes))
 print(dump(data2))
 
 ```
+
+## 性能
+
+简单测试`lua`版本性能约为`dll`版本的 12%.
+```
+dll: avg 0.002468 ms
+lua: avg 0.021600 ms
+```
+
+## 感谢
+
+- [lua-protobuf](https://github.com/starwing/lua-protobuf)
