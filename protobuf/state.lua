@@ -1,6 +1,6 @@
-local tryGetName = require("pb.names").tryGetName
-local getSliceString = require("pb.util").getSliceString
-local ConstantDefine = require("pb.ConstantDefine")
+local tryGetName = require("protobuf.names").tryGetName
+local getSliceString = require("protobuf.util").getSliceString
+local ConstantDefine = require("protobuf.ConstantDefine")
 
 ---@class export.protobuf.State
 local M = {}

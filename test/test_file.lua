@@ -1,7 +1,7 @@
-local loader = require("pb.loader")
-local decode = require("pb.decode")
-local util = require("pb.util")
-local State = require("pb.state")
+local loader = require("protobuf.loader")
+local decode = require("protobuf.decode")
+local util = require("protobuf.util")
+local State = require("protobuf.state")
 
 local TestGobalDefine = require("test.TestGobalDefine")
 

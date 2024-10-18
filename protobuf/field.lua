@@ -1,4 +1,4 @@
-local tool = require "pb.tool"
+local tool = require("protobuf.tool")
 local meta = tool.meta
 local setmetatable = setmetatable
 

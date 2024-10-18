@@ -1,21 +1,21 @@
-local fileDescriptor = require("pb.file_descriptor")
+local fileDescriptor = require("protobuf.file_descriptor")
 
-local ProtobufState = require("pb.state")
+local ProtobufState = require("protobuf.state")
 
-local pb_addslice = require("pb.bytes_operation").pb_addslice
+local pb_addslice = require("protobuf.bytes_operation").pb_addslice
 
-local ProtobufType = require("pb.type")
-local ProtobufField = require("pb.field")
+local ProtobufType = require("protobuf.type")
+local ProtobufField = require("protobuf.field")
 
-local ConstantDefine = require("pb.ConstantDefine")
+local ConstantDefine = require("protobuf.ConstantDefine")
 local PB_Tmessage = ConstantDefine.pb_FieldType.PB_Tmessage
 local PB_Tenum = ConstantDefine.pb_FieldType.PB_Tenum
 
-local charArrayToString = require("pb.util").charArrayToString
-local NewProtobufSlice = require("pb.util").ProtobufSlice.new
+local charArrayToString = require("protobuf.util").charArrayToString
+local NewProtobufSlice = require("protobuf.util").ProtobufSlice.new
 
 
-local tryGetName = require("pb.names").tryGetName
+local tryGetName = require("protobuf.names").tryGetName
 
 local tableInsert = table.insert
 local ipairs = ipairs

@@ -1,10 +1,10 @@
 local dump = require("tools.utility").dump
 local loadFile = require("tools.utility").loadFile
-local protoOut = require("pb.protoOut")
+local protoOut = require("protobuf.protoOut")
 local pb = protoOut
 local protoc = protoOut
-local _pb_encode = require("pb.encode").encode
-local _pb_decode = require("pb.decode").decode
+local _pb_encode = require("protobuf.encode").encode
+local _pb_decode = require("protobuf.decode").decode
 
 -- 内存占用
 local text, errMsg = loadFile("D:\\Workspace\\game\\y3\\tools\\lua-protobuf\\test.proto")

@@ -1,41 +1,41 @@
 --#region 导入
 
-local getConfig = require("pb.state").getConfig
-local findField = require("pb.state").findField
-local findName = require("pb.state").findName
-local findInternalType = require("pb.state").findInternalType
+local getConfig = require("protobuf.state").getConfig
+local findField = require("protobuf.state").findField
+local findName = require("protobuf.state").findName
+local findInternalType = require("protobuf.state").findInternalType
 
-local tryGetName = require("pb.names").tryGetName
+local tryGetName = require("protobuf.names").tryGetName
 
-local argcheck = require("pb.tool").argcheck
-local checkTable = require("pb.tool").checkTable
-local throw = require("pb.tool").throw
+local argcheck = require("protobuf.tool").argcheck
+local checkTable = require("protobuf.tool").checkTable
+local throw = require("protobuf.tool").throw
 
-local pb_encode_sint32 = require("pb.tool").pb_encode_sint32
-local expandsig32To64 = require("pb.tool").expandsig32To64
-local pb_encode_sint64 = require("pb.tool").pb_encode_sint64
-local lpb_tointegerx = require("pb.tool").lpb_tointegerx
-local pb_encode_double = require("pb.tool").pb_encode_double
-local pb_encode_float = require("pb.tool").pb_encode_float
+local pb_encode_sint32 = require("protobuf.tool").pb_encode_sint32
+local expandsig32To64 = require("protobuf.tool").expandsig32To64
+local pb_encode_sint64 = require("protobuf.tool").pb_encode_sint64
+local lpb_tointegerx = require("protobuf.tool").lpb_tointegerx
+local pb_encode_double = require("protobuf.tool").pb_encode_double
+local pb_encode_float = require("protobuf.tool").pb_encode_float
 
-local pb_addvarint32 = require("pb.bytes_operation").pb_addvarint32
-local pb_addvarint64 = require("pb.bytes_operation").pb_addvarint64
-local pb_addbytes = require("pb.bytes_operation").pb_addbytes
-local pb_addfixed64 = require("pb.bytes_operation").pb_addfixed64
-local pb_addfixed32 = require("pb.bytes_operation").pb_addfixed32
-local pb_pair = require("pb.bytes_operation").pb_pair
-local lpb_addlength = require("pb.bytes_operation").lpb_addlength
+local pb_addvarint32 = require("protobuf.bytes_operation").pb_addvarint32
+local pb_addvarint64 = require("protobuf.bytes_operation").pb_addvarint64
+local pb_addbytes = require("protobuf.bytes_operation").pb_addbytes
+local pb_addfixed64 = require("protobuf.bytes_operation").pb_addfixed64
+local pb_addfixed32 = require("protobuf.bytes_operation").pb_addfixed32
+local pb_pair = require("protobuf.bytes_operation").pb_pair
+local lpb_addlength = require("protobuf.bytes_operation").lpb_addlength
 
-local pb_wtypebytype = require("pb.util").pb_wtypebytype
-local lpb_toslice = require("pb.util").lpb_toslice
-local pb_len = require("pb.util").pb_len
-local pb_typename = require("pb.util").pb_typename
-local lpb_expected = require("pb.util").lpb_expected
-local NewProtobufSlice = require("pb.util").ProtobufSlice.new
+local pb_wtypebytype = require("protobuf.util").pb_wtypebytype
+local lpb_toslice = require("protobuf.util").lpb_toslice
+local pb_len = require("protobuf.util").pb_len
+local pb_typename = require("protobuf.util").pb_typename
+local lpb_expected = require("protobuf.util").lpb_expected
+local NewProtobufSlice = require("protobuf.util").ProtobufSlice.new
 
 
 
-local ConstantDefine = require "pb.ConstantDefine"
+local ConstantDefine = require("protobuf.ConstantDefine")
 local PB_TBYTES = ConstantDefine.pb_WireType.PB_TBYTES
 
 local PB_Tdouble = ConstantDefine.pb_FieldType.PB_Tdouble

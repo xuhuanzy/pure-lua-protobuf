@@ -1017,8 +1017,8 @@ do
 end
 
 
-local _pb_load = require("pb.loader").Load
-local _pb_encode = require("pb.encode").encode
+local _pb_load = require("protobuf.loader").Load
+local _pb_encode = require("protobuf.encode").encode
 do
     --#region 预制的描述文件
     local descriptor_pb =

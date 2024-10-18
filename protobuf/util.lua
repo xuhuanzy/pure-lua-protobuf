@@ -1,6 +1,6 @@
-local ConstantDefine = require("pb.ConstantDefine")
+local ConstantDefine = require("protobuf.ConstantDefine")
 
-local meta = require("pb.tool").meta
+local meta = require("protobuf.tool").meta
 local setmetatable = setmetatable
 
 local tablePack = table.pack

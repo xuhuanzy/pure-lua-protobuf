@@ -1,15 +1,15 @@
 --#region 导入区
-local pb_len = require("pb.util").pb_len
-local pb_pos = require("pb.util").pb_pos
-local getSliceString = require("pb.util").getSliceString
+local pb_len = require("protobuf.util").pb_len
+local pb_pos = require("protobuf.util").pb_pos
+local getSliceString = require("protobuf.util").getSliceString
 
-local pb_decode_sint32 = require("pb.tool").pb_decode_sint32
-local pb_decode_sint64 = require("pb.tool").pb_decode_sint64
-local pb_decode_double = require("pb.tool").pb_decode_double
-local pb_decode_float = require("pb.tool").pb_decode_float
+local pb_decode_sint32 = require("protobuf.tool").pb_decode_sint32
+local pb_decode_sint64 = require("protobuf.tool").pb_decode_sint64
+local pb_decode_double = require("protobuf.tool").pb_decode_double
+local pb_decode_float = require("protobuf.tool").pb_decode_float
 
 
-local ConstantDefine = require("pb.ConstantDefine")
+local ConstantDefine = require("protobuf.ConstantDefine")
 
 local PB_TBYTES = ConstantDefine.pb_WireType.PB_TBYTES
 local PB_TVARINT = ConstantDefine.pb_WireType.PB_TVARINT

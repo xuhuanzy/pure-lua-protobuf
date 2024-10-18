@@ -1,7 +1,7 @@
 {
 	"files": [
 		{
-			"path": "pb/encode.lua",
+			"path": "protobuf/encode.lua",
 			"bookmarks": [
 				{
 					"line": 79,
@@ -16,7 +16,7 @@
 			]
 		},
 		{
-			"path": "pb/tool.lua",
+			"path": "protobuf/tool.lua",
 			"bookmarks": [
 				{
 					"line": 39,
@@ -36,7 +36,7 @@
 			]
 		},
 		{
-			"path": "pb/bytes_operation.lua",
+			"path": "protobuf/bytes_operation.lua",
 			"bookmarks": [
 				{
 					"line": 0,
@@ -56,7 +56,7 @@
 			]
 		},
 		{
-			"path": "pb/protoOut.lua",
+			"path": "protobuf/protoOut.lua",
 			"bookmarks": [
 				{
 					"line": 1022,

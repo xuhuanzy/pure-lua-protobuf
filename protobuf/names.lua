@@ -1,4 +1,4 @@
-local getSliceString = require("pb.util").getSliceString
+local getSliceString = require("protobuf.util").getSliceString
 
 local type = type
 

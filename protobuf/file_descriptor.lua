@@ -1,7 +1,7 @@
-local ConstantDefine = require "pb.ConstantDefine"
+local ConstantDefine = require("protobuf.ConstantDefine")
 
 
-local BytesOperation = require("pb.bytes_operation")
+local BytesOperation = require("protobuf.bytes_operation")
 local pb_pair = BytesOperation.pb_pair
 local pb_readvarint32 = BytesOperation.pb_readvarint32
 local pb_skipvalue = BytesOperation.pb_skipvalue
