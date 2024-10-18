@@ -56,7 +56,7 @@
 			]
 		},
 		{
-			"path": "protobuf/protoOut.lua",
+			"path": "protobuf/parser.lua",
 			"bookmarks": [
 				{
 					"line": 1022,

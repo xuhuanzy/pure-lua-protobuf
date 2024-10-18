@@ -1,10 +1,11 @@
 local dump = require("tools.utility").dump
 local TimerTest = require("test.testUtils").TimerTest
-local protoOut = require("protobuf.protoOut")
-local pb = protoOut
-local protoc = protoOut
-local _pb_encode = require("protobuf.encode").encode
-local _pb_decode = require("protobuf.decode").decode
+local load = require("protobuf").load
+local toHex = require("protobuf").toHex
+local loadfile = require("protobuf").loadfile
+local toBytes = require("protobuf").toBytes
+local _pb_encode = require("protobuf").encode
+local _pb_decode = require("protobuf").decode
 
 local LibDeflate = require("msgpack.LibDeflate")
 local LCompressDeflate = LibDeflate.CompressDeflate
@@ -12,7 +13,7 @@ local LDecompressDeflate = LibDeflate.DecompressDeflate
 local Base64Encode = require("msgpack.base64").encode
 local Base64Decode = require("msgpack.base64").decode
 
-assert(protoc:load [[
+assert(load [[
 syntax = "proto3";
 
 message Phone {
@@ -80,16 +81,7 @@ do
     local msgpackPack = require('msgpack.msgpack').pack
     local msgpackUnpack = require('msgpack.msgpack').unpack
 
-    local bytes = LCompressDeflate(LibDeflate, msgpackPack(data))
-    TimerTest("msgpack encode and compress", testCount, function()
-        LCompressDeflate(LibDeflate, msgpackPack(data))
-    end)
-    TimerTest("msgpack decode and decompress", testCount, function()
-        msgpackUnpack(LDecompressDeflate(LibDeflate, bytes))
-    end)
-    TimerTest("msgpack encode and decode", testCount, function()
-        msgpackUnpack(LDecompressDeflate(LibDeflate, LCompressDeflate(LibDeflate, msgpackPack(data))))
-    end)
+
 
     local base64EncodeData = Base64Encode(msgpackPack(data))
     print(#base64EncodeData, base64EncodeData)
@@ -98,5 +90,24 @@ do
     end)
     TimerTest("msgpack decode and base64", testCount, function()
         msgpackUnpack(Base64Decode(base64EncodeData))
+    end)
+
+
+    local bytes = LCompressDeflate(LibDeflate, msgpackPack(data))
+    TimerTest("msgpack encode and compress", testCount, function()
+        LCompressDeflate(LibDeflate, msgpackPack(data))
+    end)
+    TimerTest("msgpack decode and decompress", testCount, function()
+        msgpackUnpack(LDecompressDeflate(LibDeflate, bytes))
+    end)
+    TimerTest("msgpack compress and encode and decode", testCount, function()
+        msgpackUnpack(LDecompressDeflate(LibDeflate, LCompressDeflate(LibDeflate, msgpackPack(data))))
+    end)
+
+    TimerTest("msgpack compress coding and base64", testCount, function()
+        -- msgpack compress coding and base64
+        msgpackUnpack(LDecompressDeflate(LibDeflate, Base64Decode(
+            Base64Encode(LCompressDeflate(LibDeflate, msgpackPack(data)))
+        )))
     end)
 end

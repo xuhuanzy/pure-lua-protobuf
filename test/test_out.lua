@@ -1,14 +1,17 @@
 local dump = require("tools.utility").dump
-local loadFile = require("tools.utility").loadFile
-local protoOut = require("protobuf.protoOut")
-local pb = protoOut
-local protoc = protoOut
-local _pb_encode = require("protobuf.encode").encode
-local _pb_decode = require("protobuf.decode").decode
+local load = require("protobuf").load
+local toHex = require("protobuf").toHex
+local loadfile = require("protobuf").loadfile
+local toBytes = require("protobuf").toBytes
+local _pb_encode = require("protobuf").encode
+local _pb_decode = require("protobuf").decode
+
 
 -- 内存占用
-local text, errMsg = loadFile("D:\\Workspace\\game\\y3\\tools\\lua-protobuf\\test.proto")
-assert(protoc:load(text))
+-- local text, errMsg = loadFile("D:\\Workspace\\game\\y3\\tools\\lua-protobuf\\test.proto")
+-- assert(text, errMsg)
+assert(loadfile("D:\\Workspace\\game\\y3\\tools\\lua-protobuf\\test.proto"))
+
 
 
 local data = {
@@ -29,8 +32,8 @@ local data = {
 
 -- 将Lua表编码为二进制数据
 local bytes = assert(_pb_encode("Person", data))
-print(protoOut.toHex(bytes))
-print(protoOut.toBytesDump(bytes))
+print(toHex(bytes))
+print(toBytes(bytes))
 
 local decodeData = _pb_decode("Person", bytes)
 print(dump(decodeData))

@@ -1,10 +1,13 @@
-local protoOut = require("protobuf.protoOut")
-local protoc = protoOut
-local _pb_encode = require("protobuf.encode").encode
-local _pb_decode = require("protobuf.decode").decode
-local TimerTest = require("test.testUtils").TimerTest
 
-assert(protoc:load [[
+local TimerTest = require("test.testUtils").TimerTest
+local load = require("protobuf").load
+local toHex = require("protobuf").toHex
+local loadfile = require("protobuf").loadfile
+local toBytes = require("protobuf").toBytes
+local _pb_encode = require("protobuf").encode
+local _pb_decode = require("protobuf").decode
+
+assert(load [[
 syntax = "proto3";
 
 message Phone {
