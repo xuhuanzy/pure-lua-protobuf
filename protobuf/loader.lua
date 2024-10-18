@@ -226,6 +226,7 @@ local function pb_load(state, s)
     loadDescriptorFiles(state, files, L)
 end
 
+-- 加载文件描述符
 ---@param data any
 ---@return boolean @是否成功
 ---@return integer @当前数据位置

@@ -1190,6 +1190,7 @@ do
         return { file = { f(...) } }
     end
 
+    -- 转为16进制字符串
     ---@param data string
     ---@return string
     function Parser.toHex(data)
@@ -1202,8 +1203,10 @@ do
         return hex_string
     end
 
-    -- 转为byte 输出
-    function Parser.toBytesDump(data)
+    -- 转为 byte 数组字符串
+    ---@param data string
+    ---@return string
+    function Parser.toBytes(data)
         local byte_array = { string.byte(data, 1, -1) }
         local hex_string = ""
         for i = 1, #byte_array do
@@ -1214,24 +1217,30 @@ do
 
     function Parser:compile(s, name)
         if self == Parser then self = Parser.new() end
-        local set = do_compile(self, self.parse, self, s, name)
-        return _pb_encode('.google.protobuf.FileDescriptorSet', set)
+        return _pb_encode('.google.protobuf.FileDescriptorSet', do_compile(self, self.parse, self, s, name))
     end
 
     function Parser:compilefile(fn)
         if self == Parser then self = Parser.new() end
-        local set = do_compile(self, self.parsefile, self, fn)
-        return _pb_encode('.google.protobuf.FileDescriptorSet', set)
+        return _pb_encode('.google.protobuf.FileDescriptorSet', do_compile(self, self.parsefile, self, fn))
     end
 
-    function Parser:load(s, name)
+    -- 加载文件描述符
+    ---@param data string 数据
+    ---@param name? string 名称
+    ---@return boolean @是否成功
+    ---@return integer @当前数据位置
+    function Parser:load(data, name)
         if self == Parser then self = Parser.new() end
-        local code = self:compile(s, name)
-        local ret, pos = _pb_load(code)
+        local ret, pos = _pb_load(self:compile(data, name))
         if ret then return ret, pos end
         error("load failed at offset " .. pos)
     end
 
+    -- 从文件加载文件描述符
+    ---@param fn string 文件名
+    ---@return boolean @是否成功
+    ---@return integer @当前数据位置
     function Parser:loadfile(fn)
         if self == Parser then self = Parser.new() end
         local ret, pos = _pb_load(self:compilefile(fn))
