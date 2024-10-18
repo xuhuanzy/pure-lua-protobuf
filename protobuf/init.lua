@@ -6,6 +6,8 @@ M.encode = require("protobuf.encode").encode
 M.decode = require("protobuf.decode").decode
 M.toHex = require("protobuf.parser").toHex
 M.toBytes = require("protobuf.parser").toBytes
+M.new = require("protobuf.parser").new
+
 local parser = require("protobuf.parser")
 -- 加载文件描述符
 ---@param data string 数据
