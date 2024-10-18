@@ -35,7 +35,7 @@ function M.lpb_lstate()
     if not CurrentState then
         ---@diagnostic disable-next-line: missing-fields
         CurrentState = {
-            encode_mode = 2,
+            encode_mode = 0,
             defaultMetaTable = {},
             enc_hooks_index = -2,
             dec_hooks_index = -2,
